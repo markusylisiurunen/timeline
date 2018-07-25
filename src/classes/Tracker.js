@@ -35,14 +35,35 @@ module.exports = class Tracker extends EventEmitter {
     this.emit('save', this[_config]);
   }
 
-  /** Get salary for a project or for all projects. */
-  getSalary(project) {
-    return Object.entries(this[_config].projects)
-      .filter(([name]) => !project || name === project)
-      .map(([name, { salaries }]) => ({
+  /** Get current salary for all projects. */
+  getSalaries() {
+    Object.entries(this[_config].projects).map(([name, { salaries }]) => {
+      const currentSalary = salaries.length
+        ? salaries.slice(-1)[0].salary
+        : null;
+
+      return {
         project: name,
-        salary: salaries.slice(-1)[0].salary,
-      }));
+        salaryPerMonth: currentSalary,
+        salaryPerHour: currentSalary && (currentSalary * 12) / 1719,
+      };
+    });
+  }
+
+  /** Get current salary for a project. */
+  getSalary(name) {
+    const project = this[_config].projects[name];
+
+    if (!project || !project.salaries.length) {
+      return null;
+    }
+
+    const currentSalary = project.salaries.slice(-1)[0].salary;
+
+    return {
+      salaryPerMonth: currentSalary,
+      salaryPerHour: (currentSalary * 12) / 1719,
+    };
   }
 
   /** Add a new entry for a project. */
