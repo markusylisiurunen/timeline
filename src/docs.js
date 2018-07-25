@@ -46,7 +46,11 @@ const commands = {
     commands: [
       {
         name: 'salary',
-        description: 'get and set your salary information',
+        description: 'manage project salaries',
+      },
+      {
+        name: 'live',
+        description: 'record a live entry',
       },
     ],
     options: [
@@ -60,11 +64,21 @@ const commands = {
   }),
   salary: doc({
     usage: 'my-time-tracker salary [options]',
+    commands: [
+      {
+        name: 'get',
+        description: "get project's salary",
+      },
+      {
+        name: 'set',
+        description: "set project's salary",
+      },
+    ],
     options: [
       {
         short: 'p',
         long: 'project',
-        description: 'project to set a new salary for',
+        description: 'project to get/set its salary',
       },
       {
         short: 's',
@@ -73,9 +87,26 @@ const commands = {
       },
     ],
     examples: [
-      'my-time-tracker salary',
-      'my-time-tracker salary --project Freelancing --salary 3250',
+      'my-time-tracker salary get',
+      'my-time-tracker salary get --project freelancing',
+      'my-time-tracker salary set --project freelancing --salary 3250',
     ],
+  }),
+  live: doc({
+    usage: 'my-time-tracker live [options]',
+    options: [
+      {
+        short: 'p',
+        long: 'project',
+        description: 'project to record for',
+      },
+      {
+        short: 'f',
+        long: 'from',
+        description: 'starting from (time)',
+      },
+    ],
+    examples: ['my-time-tracker live --project freelancing --from 9:25'],
   }),
 };
 
