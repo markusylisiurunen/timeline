@@ -3,6 +3,8 @@
  */
 
 const ow = require('ow');
+const log = require('single-line-log').stdout;
+const { getTable, parseTimeString, formatTimeDiff } = require('./util');
 
 const handlers = {};
 
@@ -52,12 +54,49 @@ handlers['salary'] = async (args, tracker) => {
   }
 };
 
-  process.stdout.write(
-    getTable(
-      ['Project', 'Salary'],
-      salaries.map(({ project, salary }) => [project, `${salary.toFixed(2)} €`])
-    )
-  );
+handlers['live'] = async (args, tracker) => {
+  const flags = {
+    project: args.project || args.p,
+    from: args.from || args.f,
+  };
+
+  // Validate flags
+  ow(flags.project, ow.string.minLength(1));
+  ow(flags.from, ow.string.matches(/^[0-9]{1,2}:[0-9]{2}$/));
+
+  // TODO: Get entries from the last 24 hours as a starting point
+  const savedProjects = {};
+
+  const from = parseTimeString(flags.from);
+  const salary = tracker.getSalary(flags.project);
+
+  /** Update the table in the output. */
+  const update = () => {
+    const elapsed = Date.now() - from;
+    const projects = {
+      ...savedProjects,
+      [flags.project]: (savedProjects[flags.project] || 0) + elapsed,
+    };
+
+    log(
+      getTable(
+        ['Project', 'Spent time', 'Earned money'],
+        Object.entries(projects).map(([project, time]) => [
+          project,
+          formatTimeDiff(time),
+          `${
+            salary
+              ? ((salary.salaryPerHour * time) / (60 * 60 * 1000)).toFixed(2)
+              : '-'
+          } €`,
+        ]),
+        { alignRight: [2] }
+      )
+    );
+  };
+
+  setInterval(update, 1000);
+  update();
 };
 
 module.exports = { ...handlers };
