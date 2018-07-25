@@ -84,11 +84,9 @@ handlers['live'] = async (args, tracker) => {
         Object.entries(projects).map(([project, time]) => [
           project,
           formatTimeDiff(time),
-          `${
-            salary
-              ? ((salary.salaryPerHour * time) / (60 * 60 * 1000)).toFixed(2)
-              : '-'
-          } €`,
+          salary
+            ? `${((salary.salaryPerHour * time) / 3.6e6).toFixed(2)} €`
+            : '-',
         ]),
         { alignRight: [2] }
       )
