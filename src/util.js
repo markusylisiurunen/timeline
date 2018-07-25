@@ -2,9 +2,31 @@
  * @description Utility functions.
  */
 
+const table = require('@markusylisiurunen/md-table');
+
 const SECOND = 1000;
 const MINUTE = SECOND * 60;
 const HOUR = MINUTE * 60;
+
+/**
+ * Construct a table.
+ * @param  {Array}  header  An array of header columns.
+ * @param  {Array}  content An array of rows.
+ * @param  {Object} options Optional options.
+ * @return {String}         The constructed table.
+ */
+const getTable = (header, content, options = {}) => {
+  const defaults = {
+    x: 4,
+    y: 1,
+    colors: {
+      head: '#eecc99',
+      border: '#555555',
+    },
+  };
+
+  return table(header, content, { ...defaults, ...options });
+};
 
 /**
  * Parse a time string (format hh:mm) to a unix timestamp.
@@ -73,6 +95,7 @@ const calculateEarnings = (time, salary) => {
 };
 
 module.exports = {
+  getTable,
   parseTimeString,
   parseTimeDiff,
   formatTimeDiff,
