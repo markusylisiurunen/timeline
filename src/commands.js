@@ -2,33 +2,55 @@
  * @overview Command handler functions.
  */
 
-const { getTable } = require('./util');
+const ow = require('ow');
 
 const handlers = {};
 
 /** Handle `salary` command. */
 handlers['salary'] = async (args, tracker) => {
+  const { 1: subcommand } = args._;
   const flags = {
     project: args.project || args.p,
     salary: args.salary || args.s,
   };
 
-  // Set a new salary for a project
-  if (flags.salary !== undefined) {
-    if (typeof flags.project !== 'string' || flags.project.length === 0) {
-      throw new Error('Project must be set and it must be a string.');
+  // Validate subcommand
+  ow(subcommand, ow.string.oneOf(['get', 'set']));
+
+  if (subcommand === 'get') {
+    if (flags.project !== undefined) {
+      // Validate flags
+      ow(flags.project, ow.string.minLength(1));
+
+      const { salaryPerMonth } = tracker.getSalary(flags.project);
+
+      console.log(
+        `Salary for ${flags.project} is ${salaryPerMonth.toFixed(2)} €.`
+      );
+
+      return;
     }
 
-    if (typeof flags.salary !== 'number' || flags.salary < 0) {
-      throw new Error('Salary must be a number and it must be more than 0.');
-    }
+    const salaries = tracker.getSalaries();
+    const rows = salaries.map(s => [
+      s.project,
+      `${s.salaryPerMonth.toFixed(2)} €`,
+    ]);
 
-    tracker.setSalary(args.project, args.salary);
+    process.stdout.write(getTable(['Project', 'Salary'], rows));
     return;
   }
 
-  // Get salary for a single project
-  const salaries = tracker.getSalary(args.project);
+  if (subcommand === 'set') {
+    ow(flags.project, ow.string.minLength(1));
+    ow(flags.salary, ow.number.greaterThanOrEqual(0));
+
+    tracker.setSalary(flags.project, flags.salary);
+    console.log(
+      `Salary of ${flags.salary.toFixed(2)} € set for ${flags.project}.`
+    );
+  }
+};
 
   process.stdout.write(
     getTable(

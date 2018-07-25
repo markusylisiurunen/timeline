@@ -37,7 +37,7 @@ module.exports = class Tracker extends EventEmitter {
 
   /** Get current salary for all projects. */
   getSalaries() {
-    Object.entries(this[_config].projects).map(([name, { salaries }]) => {
+    return Object.entries(this[_config].projects).map(([name, { salaries }]) => {
       const currentSalary = salaries.length
         ? salaries.slice(-1)[0].salary
         : null;
