@@ -1,1 +1,3 @@
-# time-tracker
+# Time tracker
+
+Work in progress...

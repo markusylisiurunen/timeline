@@ -1,0 +1,38 @@
+{
+  "name": "@markusylisiurunen/time-tracker",
+  "version": "0.0.1",
+  "description": "Track spent time categorised by projects.",
+  "keywords": [
+    "time",
+    "time tracker",
+    "time tracking",
+    "tracker"
+  ],
+  "homepage": "https://github.com/markusylisiurunen/time-tracker#readme",
+  "bugs": "https://github.com/markusylisiurunen/time-tracker/issues",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/markusylisiurunen/time-tracker"
+  },
+  "license": "MIT",
+  "author": "Markus Ylisiurunen <os@markus.im>",
+  "main": "./src/index.js",
+  "bin": {
+    "my-time-tracker": "./src/index.js"
+  },
+  "scripts": {
+    "format": "prettier --write *.js **/*.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "@markusylisiurunen/md-table": "^0.2.1-alpha",
+    "minimist": "^1.2.0",
+    "single-line-log": "^1.1.2"
+  },
+  "engines": {
+    "node": ">=10.0.0"
+  },
+  "devDependencies": {
+    "prettier": "^1.13.7"
+  }
+}
