@@ -21,8 +21,8 @@
     "my-time-tracker": "./src/index.js"
   },
   "scripts": {
-    "format": "prettier --write *.js **/*.js",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "lint": "eslint src && prettier --list-different *.js **/*.js",
+    "format": "prettier --write *.js **/*.js"
   },
   "dependencies": {
     "@markusylisiurunen/md-table": "^0.2.1-alpha",
@@ -36,6 +36,10 @@
     "node": ">=10.0.0"
   },
   "devDependencies": {
+    "babel-eslint": "^8.2.6",
+    "eslint": "^5.2.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-prettier": "^2.6.2",
     "jest": "^23.4.1",
     "prettier": "^1.13.7"
   }
