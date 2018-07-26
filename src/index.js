@@ -20,7 +20,7 @@ const args = minimist(process.argv.slice(2));
 // Print documentation if the -h or --help flags are present or if incorrect
 // command is passed
 if (args.h || args.help || !args._.length || !commands[args._[0]]) {
-  console.log(docs(args._[0]));
+  process.stdout.write(docs(args._.join('.')));
   process.exit();
 }
 
