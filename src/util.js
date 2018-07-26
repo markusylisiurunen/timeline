@@ -35,6 +35,11 @@ const parseTimeString = time => {
   return now.getTime();
 };
 
+const parseDuration = duration => {
+  const [hours, minutes] = duration.split(':').map(n => parseInt(n, 10));
+  return (hours * 60 + minutes) * 60 * 1000;
+};
+
 // Tables
 
 const tableBuild = (header, content, options = {}) => {
@@ -64,13 +69,19 @@ const tableEntries = entries => {
     return [fromString, toString, duration, labels.join(', '), moneyString];
   });
 
-  return getTable(header, rows, options);
+  return tableBuild(header, rows, options);
 };
+
+// Salaries
+
+const salaryNormalise = salary => (salary <= 400 ? salary : (salary * 12) / 1719);
 
 module.exports = {
   formatTime,
   formatTimeDifference,
   parseTimeString,
+  parseDuration,
   tableBuild,
   tableEntries,
+  salaryNormalise,
 };

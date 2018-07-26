@@ -4,61 +4,50 @@
 
 const ow = require('ow');
 const log = require('single-line-log').stdout;
-const { getTable, getEntriesTable, parseTimeString, formatTimeDiff } = require('./util');
+const {
+  formatTimeDiff,
+  parseTimeString,
+  parseDuration,
+  tableBuild,
+  tableEntries,
+  salaryNormalise,
+} = require('./util');
 
-const handlers = {};
+const commands = {};
 
-handlers['salary'] = async (args, tracker) => {
-  const { 1: subcommand } = args._;
+commands['entry'] = async (args, tracker) => {
+  const subcommand = args._[1];
   const flags = {
-    project: args.project || args.p,
-    salary: args.salary || args.s,
+    label: args.label || args.l,
+    duration: args.duration || args.d,
+    money: args.money || args.m,
   };
 
-  // Validate subcommand
-  ow(subcommand, ow.string.oneOf(['get', 'set']));
-
-  if (subcommand === 'get') {
-    if (flags.project !== undefined) {
-      // Validate flags
-      ow(flags.project, ow.string.minLength(1));
-
-      const { salaryPerMonth } = tracker.getSalary(flags.project);
-
-      console.log(`Salary for ${flags.project} is ${salaryPerMonth.toFixed(2)} €.`);
-
-      return;
-    }
-
-    const salaries = tracker.getSalaries();
-    const rows = salaries.map(s => [s.project, `${s.salaryPerMonth.toFixed(2)} €`]);
-
-    process.stdout.write(getTable(['Project', 'Salary'], rows));
-    return;
+  if (!Array.isArray(flags.label)) {
+    flags.label = [flags.label];
   }
 
-  if (subcommand === 'set') {
-    ow(flags.project, ow.string.minLength(1));
-    ow(flags.salary, ow.number.greaterThanOrEqual(0));
+  // Validate subcommand
+  ow(subcommand, ow.string.oneOf(['add']));
 
-    tracker.setSalary(flags.project, flags.salary);
-    console.log(
-      `Salary of ${flags.salary.toFixed(2)} € set for ${flags.project}.`
-    );
+  if (subcommand === 'add') {
+    // Validate flags
+    ow(flags.label, ow.array.nonEmpty);
+    ow(flags.duration, ow.string.matches(/^[0-9]{1,2}:[0-9]{2}$/));
+
+    if (flags.money !== undefined) ow(flags.money, ow.number.greaterThanOrEqual(0));
+
+    tracker.addEntry({
+      labels: flags.label,
+      duration: parseDuration(flags.duration),
+      money: flags.money || null,
+    });
+
+    console.log('New entry added.');
   }
 };
 
-handlers['live'] = async (args, tracker) => {
-  const flags = {
-    project: args.project || args.p,
-    from: args.from || args.f,
-  };
-
-  // Validate flags
-  ow(flags.project, ow.string.minLength(1));
-  ow(flags.from, ow.string.matches(/^[0-9]{1,2}:[0-9]{2}$/));
-
-handlers['live'] = async (args, tracker) => {
+commands['live'] = async (args, tracker) => {
   const flags = {
     label: args.label || args.l,
     from: args.from || args.f,
@@ -70,16 +59,15 @@ handlers['live'] = async (args, tracker) => {
   ow(flags.from, ow.string.matches(/^[0-9]{1,2}:[0-9]{2}$/));
   ow(flags.salary, ow.number.greaterThanOrEqual(0));
 
-  // TODO: Get saved entries to include to the total
+  // TODO: Get saved entries from the past
 
   // Parse and normalise live entry values
   const from = parseTimeString(flags.from);
-  const salaryPerHour = flags.salary <= 400 ? flags.salary : (flags.salary * 12) / 1719;
+  const salaryPerHour = salaryNormalise(flags.salary);
 
-  /** Update the table in the output. */
-  const update = () => {
+  setInterval(() => {
     log(
-      getEntriesTable([
+      tableEntries([
         {
           from: new Date(from),
           to: new Date(),
@@ -88,10 +76,7 @@ handlers['live'] = async (args, tracker) => {
         },
       ])
     );
-  };
-
-  setInterval(update, 250);
-  update();
+  }, 250);
 };
 
-module.exports = { ...handlers };
+module.exports = { ...commands };
