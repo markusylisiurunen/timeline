@@ -1,74 +1,35 @@
 /**
- * @overview A class for reading and writing to a time tracker configuration.
+ * @overview A class for reading and writing to a time tracker data store.
  */
 
 const EventEmitter = require('events');
-
-const _config = Symbol('config');
+const ow = require('ow');
 
 module.exports = class Tracker extends EventEmitter {
-  constructor(config) {
+  constructor(data) {
     super();
-    this[_config] = config;
+
+    this._data = { ...data };
   }
 
-  /** Make sure that a project has been initialised. */
-  _ensureProject(project) {
-    const initial = {
-      salaries: [],
-    };
+  addEntry({ labels, duration, money }) {
+    ow(labels, ow.array.nonEmpty.ofType(ow.string.minLength(1)));
+    ow(duration, ow.number.greaterThan(0));
 
-    if (!this[_config].projects[project]) {
-      this[_config].projects[project] = initial;
-    }
-  }
+    if (typeof money === 'number') ow(money, ow.number.greaterThan(0));
 
-  /** Append a new salary entry for a project. */
-  setSalary(project, salary) {
-    this._ensureProject(project);
+    const timestamp = Date.now();
+    const entry = { timestamp, labels, duration, money };
 
-    this[_config].projects[project].salaries.push({
-      timestamp: Date.now(),
-      salary: Math.round(salary * 100) / 100,
+    this._data.entries.push({ ...entry });
+
+    delete entry.labels;
+
+    labels.forEach(label => {
+      const entries = this._data.entriesByLabel[label] || [];
+      this._data.entriesByLabel[label] = [...entries, entry];
     });
 
-    this.emit('save', this[_config]);
-  }
-
-  /** Get current salary for all projects. */
-  getSalaries() {
-    return Object.entries(this[_config].projects).map(([name, { salaries }]) => {
-      const currentSalary = salaries.length
-        ? salaries.slice(-1)[0].salary
-        : null;
-
-      return {
-        project: name,
-        salaryPerMonth: currentSalary,
-        salaryPerHour: currentSalary && (currentSalary * 12) / 1719,
-      };
-    });
-  }
-
-  /** Get current salary for a project. */
-  getSalary(name) {
-    const project = this[_config].projects[name];
-
-    if (!project || !project.salaries.length) {
-      return null;
-    }
-
-    const currentSalary = project.salaries.slice(-1)[0].salary;
-
-    return {
-      salaryPerMonth: currentSalary,
-      salaryPerHour: (currentSalary * 12) / 1719,
-    };
-  }
-
-  /** Add a new entry for a project. */
-  addEntry(project, from, to) {
-    this[_config].entries.push({ timestamp: Date.now(), project, from, to });
-    this.emit('save', this[_config]);
+    this.emit('save', this._data);
   }
 };

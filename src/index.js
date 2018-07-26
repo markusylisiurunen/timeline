@@ -9,7 +9,7 @@ const Tracker = require('./classes/Tracker');
 const pkg = require('../package.json');
 
 // Initialise the tracker
-const config = new Configstore(pkg.name, { projects: {}, entries: [] });
+const config = new Configstore(pkg.name, { entriesByLabel: {}, entries: [] });
 const tracker = new Tracker(config.all);
 
 tracker.on('save', data => config.set(data));
