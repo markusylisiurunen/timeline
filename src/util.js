@@ -6,48 +6,20 @@ const table = require('@markusylisiurunen/md-table');
 
 // Formatting
 
-const formatTime = date =>
-  [date.getHours(), date.getMinutes()].map(num => num.toString().padStart(2, '0')).join(':');
+const formatTime = nums => nums.map(num => num.toString().padStart(2, '0')).join(':');
 
-// Tables
+const formatTimeDifference = diff => {
+  const hours = Math.floor(diff / (60 * 60 * 1000));
+  const minutes = Math.floor((diff - hours * 60 * 60 * 1000) / (60 * 1000));
 
-const getTable = (header, content, options = {}) => {
-  const defaults = {
-    x: 4,
-    y: 1,
-    colors: {
-      head: '#eecc99',
-      border: '#555555',
-    },
-  };
-
-  return table(header, content, { ...defaults, ...options });
+  return formatTime([hours, minutes]);
 };
 
-const getEntriesTable = entries => {
-  const header = ['From', 'To', 'Duration', 'Label(s)', 'Money'];
-  const options = { alignRight: [0, 1, 4] };
+// Parsing
 
-  const rows = entries.map(({ from, to, labels, money }) => {
-    const fromString = formatTime(from);
-    const toString = formatTime(to);
-
-    const duration = formatTimeDiff(to.getTime() - from.getTime());
-    const moneyString = money ? `${money.toFixed(2)} €` : '-';
-
-    return [fromString, toString, duration, labels.join(','), moneyString];
-  });
-
-  return getTable(header, rows, options);
-};
-/**
- * Parse a time string (format hh:mm) to a unix timestamp.
- * @param  {String} timeString Time string to parse.
- * @return {Number}            Unix timestamp for the time.
- */
-const parseTimeString = timeString => {
-  const timeRegex = /([0-9]{1,2}):([0-9]{1,2})/;
-  const parsed = timeRegex.exec(timeString);
+const parseTimeString = time => {
+  const timeRegex = /([0-9]{1,2}):([0-9]{2})/;
+  const parsed = timeRegex.exec(time);
   const now = new Date();
 
   if (!parsed) {
@@ -63,54 +35,42 @@ const parseTimeString = timeString => {
   return now.getTime();
 };
 
-/**
- * Parse time difference from milliseconds.
- * @param  {Number} timeDiff Time difference to parse.
- * @return {Object}          Object with hours, minutes and seconds set.
- */
-const parseTimeDiff = timeDiff => {
-  const hours = Math.floor(timeDiff / HOUR);
-  const minutes = Math.floor((timeDiff - hours * HOUR) / MINUTE);
-  const seconds = Math.floor(
-    (timeDiff - hours * HOUR - minutes * MINUTE) / SECOND
-  );
+// Tables
 
-  return { hours, minutes, seconds };
+const tableBuild = (header, content, options = {}) => {
+  const defaults = {
+    x: 4,
+    y: 1,
+    colors: {
+      head: '#eecc99',
+      border: '#555555',
+    },
+  };
+
+  return table(header, content, { ...defaults, ...options });
 };
 
-/**
- * Format time diff into a human readable string.
- * @param  {Number}  timeDiff        Time difference to format.
- * @param  {Boolean} includeSeconds  Whether to include seconds.
- * @return {String}                  A human readable string of the time diff.
- */
-const formatTimeDiff = (diff, includeSeconds) => {
-  const { hours, minutes, seconds } = parseTimeDiff(Math.abs(diff));
-  let line = `${diff < 0 ? '-' : ''}${hours} hours ${minutes} minutes`;
+const tableEntries = entries => {
+  const header = ['From', 'To', 'Duration', 'Label(s)', 'Money'];
+  const options = { alignRight: [0, 1, 2, 4] };
 
-  if (includeSeconds) {
-    line += ` ${seconds} seconds`;
-  }
+  const rows = entries.map(({ from, to, labels, money }) => {
+    const fromString = formatTime([from.getHours(), from.getMinutes()]);
+    const toString = formatTime([to.getHours(), to.getMinutes()]);
 
-  return line;
-};
+    const duration = formatTimeDifference(to.getTime() - from.getTime());
+    const moneyString = money ? `${money.toFixed(2)} €` : '-';
 
-/**
- * Calculate the earned money,
- * @param  {Number} time   Spent time in milliseconds.
- * @param  {Number} salary Salary per month.
- * @return {Number}        Earned money.
- */
-const calculateEarnings = (time, salary) => {
-  const salaryPerHour = (salary * 12) / 1719;
-  return (time / (60 * 60 * 1000)) * salaryPerHour;
+    return [fromString, toString, duration, labels.join(', '), moneyString];
+  });
+
+  return getTable(header, rows, options);
 };
 
 module.exports = {
-  getTable,
-  getEntriesTable,
+  formatTime,
+  formatTimeDifference,
   parseTimeString,
-  parseTimeDiff,
-  formatTimeDiff,
-  calculateEarnings,
+  tableBuild,
+  tableEntries,
 };
