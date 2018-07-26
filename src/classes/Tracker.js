@@ -42,7 +42,7 @@ module.exports = class Tracker extends EventEmitter {
 
       if (entry.timestamp < since) break;
 
-      entries.push(entry);
+      entries.unshift(entry);
       index -= 1;
     }
 
