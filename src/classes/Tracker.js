@@ -32,4 +32,20 @@ module.exports = class Tracker extends EventEmitter {
 
     this.emit('save', this._data);
   }
+
+  getEntriesSince(since) {
+    let index = this._data.entries.length - 1;
+    const entries = [];
+
+    while (index >= 0) {
+      const entry = this._data.entries[index];
+
+      if (entry.timestamp < since) break;
+
+      entries.push(entry);
+      index -= 1;
+    }
+
+    return entries;
+  }
 };

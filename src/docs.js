@@ -45,8 +45,9 @@ docs['live'] = [
   block(
     list('Options', [
       ['-l, --label', 'Label(s) for the live entry'],
-      ['-f, --from', 'Starting from'],
       ['-s, --salary', 'Salary for the live entry (0-400 => hourly, > 400 => monthly)'],
+      ['-S, --since', 'Include entries since time'],
+      ['-f, --from', 'Starting from'],
     ])
   ),
 ].join('\n');

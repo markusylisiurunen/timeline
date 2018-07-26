@@ -5,7 +5,7 @@
 const ow = require('ow');
 const log = require('single-line-log').stdout;
 const {
-  formatTimeDiff,
+  formatTimeDifference,
   parseTimeString,
   parseDuration,
   tableBuild,
@@ -50,8 +50,9 @@ commands['entry'] = async (args, tracker) => {
 commands['live'] = async (args, tracker) => {
   const flags = {
     label: args.label || args.l,
-    from: args.from || args.f,
     salary: args.salary || args.s,
+    since: args.since || args.S,
+    from: args.from || args.f,
   };
 
   // Validate flags
@@ -59,23 +60,37 @@ commands['live'] = async (args, tracker) => {
   ow(flags.from, ow.string.matches(/^[0-9]{1,2}:[0-9]{2}$/));
   ow(flags.salary, ow.number.greaterThanOrEqual(0));
 
-  // TODO: Get saved entries from the past
+  if (flags.since !== undefined) ow(flags.since, ow.string.matches(/^[0-9]{1,2}:[0-9]{2}$/));
+
+  const entries = [];
+
+  if (flags.since !== undefined) {
+    const since = parseTimeString(flags.since);
+    entries.push(...tracker.getEntriesSince(since));
+  }
 
   // Parse and normalise live entry values
   const from = parseTimeString(flags.from);
   const salaryPerHour = salaryNormalise(flags.salary);
 
   setInterval(() => {
-    log(
-      tableEntries([
-        {
-          from: new Date(from),
-          to: new Date(),
-          labels: [flags.label],
-          money: salaryPerHour * ((Date.now() - from) / 3.6e6),
-        },
-      ])
-    );
+    const currentDuration = Date.now() - from;
+    const currentMoney = salaryPerHour * ((Date.now() - from) / 3.6e6);
+
+    const table = tableEntries([
+      ...entries,
+      { duration: currentDuration, labels: [flags.label], money: currentMoney },
+    ]);
+
+    let totalDuration = entries.reduce((t, e) => t + e.duration, currentDuration);
+    let totalMoney = entries.reduce((t, e) => t + e.money, currentMoney);
+
+    totalDuration = formatTimeDifference(totalDuration);
+    totalMoney = `${totalMoney.toFixed(2)} €`;
+
+    const summary = `You have worked ${totalDuration} and earned ${totalMoney}.`;
+
+    log(['', table, summary.padStart(summary.length + 4), ''].join('\n'));
   }, 250);
 };
 

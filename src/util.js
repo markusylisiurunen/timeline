@@ -45,7 +45,6 @@ const parseDuration = duration => {
 const tableBuild = (header, content, options = {}) => {
   const defaults = {
     x: 4,
-    y: 1,
     colors: {
       head: '#eecc99',
       border: '#555555',
@@ -56,17 +55,14 @@ const tableBuild = (header, content, options = {}) => {
 };
 
 const tableEntries = entries => {
-  const header = ['From', 'To', 'Duration', 'Label(s)', 'Money'];
-  const options = { alignRight: [0, 1, 2, 4] };
+  const header = ['Duration', 'Label(s)', 'Money'];
+  const options = { alignRight: [0, 2] };
 
-  const rows = entries.map(({ from, to, labels, money }) => {
-    const fromString = formatTime([from.getHours(), from.getMinutes()]);
-    const toString = formatTime([to.getHours(), to.getMinutes()]);
-
-    const duration = formatTimeDifference(to.getTime() - from.getTime());
+  const rows = entries.map(({ duration, labels, money }) => {
+    const durationString = formatTimeDifference(duration);
     const moneyString = money ? `${money.toFixed(2)} €` : '-';
 
-    return [fromString, toString, duration, labels.join(', '), moneyString];
+    return [durationString, labels.join(', '), moneyString];
   });
 
   return tableBuild(header, rows, options);
