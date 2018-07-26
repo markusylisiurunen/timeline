@@ -1,12 +1,12 @@
 {
   "name": "@markusylisiurunen/time-tracker",
-  "version": "0.0.1",
-  "description": "Track spent time categorised by projects.",
+  "version": "0.1.0",
+  "description": "Track spent time categorised by labels.",
   "keywords": [
     "time",
+    "tracker",
     "time tracker",
-    "time tracking",
-    "tracker"
+    "time tracking"
   ],
   "homepage": "https://github.com/markusylisiurunen/time-tracker#readme",
   "bugs": "https://github.com/markusylisiurunen/time-tracker/issues",
