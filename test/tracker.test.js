@@ -61,18 +61,25 @@ describe('getting and manipulating entries', () => {
     );
   });
 
+  test('MapReduces entries', () => {
+    const testOneCount = entries.filter(e => e.type === 'Test1').length;
+    const testTwoCount = entries.filter(e => e.type === 'Test2').length;
+
+    const result = tracker.mapReduce(e => e.type, ({ count }) => ({ count: (count || 0) + 1 }));
+
+    expect(result.Test1.count).toBe(testOneCount);
+    expect(result.Test2.count).toBe(testTwoCount);
+  });
+
   test('MapReduces entries since a timestamp', () => {
-    const monies = entries.reduce(
-      (sums, entry) => ({ ...sums, [entry.labels[0]]: sums[entry.labels[0]] + entry.data.money }),
-      { test_1: 0, test_2: 0 }
-    );
+    const testOneCount = entries.filter(e => e.type === 'Test1' && e.timestamp >= 35).length;
+    const testTwoCount = entries.filter(e => e.type === 'Test2' && e.timestamp >= 35).length;
 
-    const result = tracker.mapReduce(
-      entry => entry.labels[0],
-      ({ money }, entry) => ({ money: (money || 0) + entry.data.money })
-    );
+    const result = tracker.mapReduce(e => e.type, ({ count }) => ({ count: (count || 0) + 1 }), {
+      since: 35,
+    });
 
-    expect(result.test_1.money).toBe(monies.test_1);
-    expect(result.test_2.money).toBe(monies.test_2);
+    expect(result.Test1.count).toBe(testOneCount);
+    expect(result.Test2.count).toBe(testTwoCount);
   });
 });
