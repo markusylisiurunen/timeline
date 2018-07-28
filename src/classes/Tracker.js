@@ -40,11 +40,32 @@ module.exports = class Tracker extends EventEmitter {
   }
 
   /**
+   * Get entries since a specified timestamp.
+   * @param {Number} since Limit the entries to only those after `since`.
+   */
+  getEntriesSince(since) {
+    const result = [];
+    let i = this._data.entries.length - 1;
+
+    while (i !== -1) {
+      const entry = this._data.entries[i];
+
+      if (entry.timestamp < since) break;
+
+      result.unshift(entry);
+      i -= 1;
+    }
+
+    return result;
+  }
+
+  /**
    * Run MapReduce since a specified timestamp.
-   * @param {Function} map             Map each entry to a key.
-   * @param {Function} reduce          Reduce each group to a single object value.
-   * @param {Object}   [options]       Options for the MapReduce.
-   * @param {Number}   [options.since] Limit the entries to only those added after `since`.
+   * @param  {Function} map             Map each entry to a key.
+   * @param  {Function} reduce          Reduce each group to a single object value.
+   * @param  {Object}   [options]       Options for the MapReduce.
+   * @param  {Number}   [options.since] Limit the entries to only those added after `since`.
+   * @return {Object}                   The MapReduced result.
    */
   mapReduce(map, reduce, { since = 0 } = {}) {
     // Validate arguments
@@ -59,7 +80,7 @@ module.exports = class Tracker extends EventEmitter {
     // Map
     let i = this._data.entries.length - 1;
 
-    while (i != -1) {
+    while (i !== -1) {
       const entry = this._data.entries[i];
 
       // Stop if "since" restriction not true anymore

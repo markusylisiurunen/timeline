@@ -15,6 +15,17 @@ test('adds a new entry', () => {
   expect(tracker.getAllEntries()[0].labels).toEqual(['test_1', 'test_2']);
 });
 
+test('gets entries since a timestamp', () => {
+  const tracker = new Tracker();
+
+  [
+    { type: 'Test', timestamp: 50, labels: ['test_1'] },
+    { type: 'Test', timestamp: 100, labels: ['test_1'] },
+  ].forEach(entry => tracker.addEntry(entry));
+
+  expect(tracker.getEntriesSince(75)).toHaveLength(1);
+});
+
 test('groups entries by label and gets total earned money', () => {
   const tracker = new Tracker();
 
