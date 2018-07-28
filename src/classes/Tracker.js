@@ -58,6 +58,8 @@ module.exports = class Tracker extends EventEmitter {
    * @return {Array}                  An array of matched entries.
    */
   getEntries({ since = null } = {}) {
+    ow(since, ow.any(ow.null, ow.number.greaterThanOrEqual(0)));
+
     let entries = this._data.entries;
 
     if (since) {
@@ -75,6 +77,8 @@ module.exports = class Tracker extends EventEmitter {
    * @return {Array}                  An array of matched entries.
    */
   getEntriesByType(type, { since = null } = {}) {
+    ow(since, ow.any(ow.null, ow.number.greaterThanOrEqual(0)));
+
     let entries = this._data.entriesByType[type] || [];
 
     if (since) {
@@ -92,6 +96,8 @@ module.exports = class Tracker extends EventEmitter {
    * @return {Array}                  An array of matched entries.
    */
   getEntriesByLabel(label, { since = null } = {}) {
+    ow(since, ow.any(ow.null, ow.number.greaterThanOrEqual(0)));
+
     let entries = this._data.entriesByLabel[label] || [];
 
     if (since) {
@@ -149,7 +155,7 @@ module.exports = class Tracker extends EventEmitter {
     ow(map, ow.function);
     ow(reduce, ow.function);
 
-    ow(since, ow.number.greaterThanOrEqual(0));
+    ow(since, ow.any(ow.null, ow.number.greaterThanOrEqual(0)));
 
     // The result of MapReduce
     let result = {};
