@@ -140,11 +140,11 @@ module.exports = class Tracker extends EventEmitter {
    * Run MapReduce since a specified timestamp.
    * @param  {Function} map             Map each entry to a key.
    * @param  {Function} reduce          Reduce each group to a single object value.
-   * @param  {Object}   [options]       Options for the MapReduce.
-   * @param  {Number}   [options.since] Limit the entries to only those added after `since`.
+   * @param  {Object}   [options]       Options.
+   * @param  {Number}   [options.since] Filter entries to only those added after `since`.
    * @return {Object}                   The MapReduced result.
    */
-  mapReduce(map, reduce, { since = 0 } = {}) {
+  mapReduce(map, reduce, { since = null } = {}) {
     // Validate arguments
     ow(map, ow.function);
     ow(reduce, ow.function);
@@ -161,7 +161,7 @@ module.exports = class Tracker extends EventEmitter {
       const entry = this._data.entries[i];
 
       // Stop if "since" restriction not true anymore
-      if (entry.timestamp < since) break;
+      if (since && entry.timestamp < since) break;
 
       // Map the entry to a key
       const key = map(entry);
