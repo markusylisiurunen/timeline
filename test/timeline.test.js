@@ -22,6 +22,41 @@ describe('adding events', () => {
   });
 });
 
+describe('removing events', () => {
+  let timeline = null;
+
+  beforeEach(() => {
+    timeline = new Timeline();
+
+    const events = [
+      { type: 'test_1', timestamp: 1, labels: ['test_1'] },
+      { type: 'test_2', timestamp: 2, labels: ['test_1', 'test_2'] },
+    ];
+
+    events.forEach(event => timeline.add(event.type, event.timestamp, event.labels));
+  });
+
+  test('removes an event from all events', () => {
+    timeline.remove(timeline.get()[0].id);
+
+    expect(timeline.get()).toHaveLength(1);
+    expect(timeline.get()[0].type).toBe('test_2');
+  });
+
+  test('removes an event from events by type', () => {
+    timeline.remove(timeline.getByType('test_1')[0].id);
+
+    expect(timeline.getByType('test_1')).toHaveLength(0);
+  });
+
+  test('removes an event from events by label', () => {
+    timeline.remove(timeline.getByLabel('test_1')[0].id);
+
+    expect(timeline.getByLabel('test_1')).toHaveLength(1);
+    expect(timeline.getByLabel('test_1')[0].type).toBe('test_2');
+  });
+});
+
 describe('getting events', () => {
   let timeline = null;
 

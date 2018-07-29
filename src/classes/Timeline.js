@@ -158,6 +158,30 @@ class Timeline extends EventEmitter {
   }
 
   /**
+   * Remove an event from the timeline.
+   * @param {String} id Id of the event to remove.
+   */
+  remove(id) {
+    if (!this._timeline.eventsById[id]) return;
+
+    const { type, labels } = this._timeline.eventsById[id];
+
+    // Delete the event from the data structure
+    delete this._timeline.eventsById[id];
+
+    const index = this._timeline.events.findIndex(e => e.id === id);
+    this._timeline.events.splice(index, 1);
+
+    const indexByType = this._timeline.eventsByType[type].findIndex(e => e.id === id);
+    this._timeline.eventsByType[type].splice(indexByType, 1);
+
+    labels.forEach(label => {
+      const indexByLabel = this._timeline.eventsByLabel[label].findIndex(e => e.id === id);
+      this._timeline.eventsByLabel[label].splice(indexByLabel, 1);
+    });
+  }
+
+  /**
    * Run MapReduce since a specified timestamp.
    * @param  {Function} map             Map each entry to a key.
    * @param  {Function} reduce          Reduce each group to a single object value.
