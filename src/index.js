@@ -16,12 +16,14 @@ const plugins = [require('./plugins/work'), require('./plugins/google-calendar')
 plugins.forEach(plugin => plugin(args, config, timeline));
 
 // Show documentation for a command if needed
-if (args.help || args.h || !args._.length) {
-  const documentation = timeline.getDocumentation(args._.join('.'));
+const command = args._.join('.');
+
+if (args.help || args.h || !args._.length || !timeline.hasCommand(command)) {
+  const documentation = timeline.getDocumentation(command);
 
   process.stdout.write(documentation || 'Invalid command.\n');
   process.exit();
 }
 
 // Execute the wanted command
-timeline.executeCommand(args._.join('.'));
+timeline.executeCommand(command);

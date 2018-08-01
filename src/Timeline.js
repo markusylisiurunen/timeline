@@ -122,6 +122,15 @@ class Timeline extends EventEmitter {
   }
 
   /**
+   * Check if a command is registered or not.
+   * @param  {String}  command The name of the command to check.
+   * @return {Boolean}         True if registered, otherwise false.
+   */
+  hasCommand(command) {
+    return Boolean(this._commands[command]);
+  }
+
+  /**
    * Execute a registered command.
    * @param {String} command Command to execute.
    */
