@@ -1,30 +1,31 @@
 {
-  "name": "@markusylisiurunen/time-tracker",
+  "name": "@markusylisiurunen/timeline",
   "version": "0.1.0",
-  "description": "Track spent time categorised by labels.",
+  "description": "Put events on a timeline.",
   "keywords": [
     "time",
-    "time tracker",
     "time tracking",
-    "tracker"
+    "timeline"
   ],
-  "homepage": "https://github.com/markusylisiurunen/time-tracker#readme",
-  "bugs": "https://github.com/markusylisiurunen/time-tracker/issues",
+  "homepage": "https://github.com/markusylisiurunen/timeline#readme",
+  "bugs": "https://github.com/markusylisiurunen/timeline/issues",
   "repository": {
     "type": "git",
-    "url": "https://github.com/markusylisiurunen/time-tracker"
+    "url": "https://github.com/markusylisiurunen/timeline"
   },
   "license": "MIT",
   "author": "Markus Ylisiurunen <os@markus.im>",
   "main": "./src/index.js",
   "bin": {
-    "my-time-tracker": "./src/index.js"
+    "timeline": "./src/index.js"
   },
   "scripts": {
-    "lint": "eslint src test",
+    "eslint.fix": "eslint --fix **/*.js",
+    "eslint.lint": "eslint **/*.js",
+    "lint": "npm run eslint.lint && npm run prettier.lint",
     "test": "jest",
-    "prettier.format": "prettier --write *.js **/*.js",
-    "prettier.lint": "prettier --list-different *.js **/*.js"
+    "prettier.fix": "prettier --write **/*.{js,md}",
+    "prettier.lint": "prettier --list-different **/*.{js,md}"
   },
   "jest": {
     "testEnvironment": "node"
