@@ -1,4 +1,4 @@
-const Timeline = require('../src/classes/Timeline');
+const Timeline = require('../src/Timeline');
 
 describe('adding events', () => {
   let timeline = null;
@@ -8,13 +8,13 @@ describe('adding events', () => {
   });
 
   test('adds a single event', () => {
-    timeline.add('test', Date.now(), ['test_1']);
+    timeline.add('test', ['test_1'], 'test', 1, 2);
     expect(timeline.get()).toHaveLength(1);
   });
 
   test('adds two events in correct order', () => {
-    timeline.add('test', 2, ['test_1']);
-    timeline.add('test', 1, ['test_2']);
+    timeline.add('test', ['test_1'], 'test', 2, 3);
+    timeline.add('test', ['test_2'], 'test', 1, 2);
 
     expect(timeline.get()).toHaveLength(2);
     expect(timeline.get()[0].labels).toEqual(['test_2']);
@@ -29,11 +29,13 @@ describe('removing events', () => {
     timeline = new Timeline();
 
     const events = [
-      { type: 'test_1', timestamp: 1, labels: ['test_1'] },
-      { type: 'test_2', timestamp: 2, labels: ['test_1', 'test_2'] },
+      { type: 'test_1', labels: ['test_1'], description: 'test', from: 1, to: 2 },
+      { type: 'test_2', labels: ['test_1', 'test_2'], description: 'test', from: 2, to: 3 },
     ];
 
-    events.forEach(event => timeline.add(event.type, event.timestamp, event.labels));
+    events.forEach(event =>
+      timeline.add(event.type, event.labels, event.description, event.from, event.to)
+    );
   });
 
   test('removes an event from all events', () => {
@@ -64,12 +66,14 @@ describe('getting events', () => {
     timeline = new Timeline();
 
     const events = [
-      { type: 'test_1', timestamp: 1, labels: ['test_1'] },
-      { type: 'test_2', timestamp: 2, labels: ['test_1', 'test_2'] },
-      { type: 'test_2', timestamp: 3, labels: ['test_2'] },
+      { type: 'test_1', labels: ['test_1'], description: 'test', from: 1, to: 2 },
+      { type: 'test_2', labels: ['test_1', 'test_2'], description: 'test', from: 2, to: 3 },
+      { type: 'test_2', labels: ['test_2'], description: 'test', from: 3, to: 4 },
     ];
 
-    events.forEach(event => timeline.add(event.type, event.timestamp, event.labels));
+    events.forEach(event =>
+      timeline.add(event.type, event.labels, event.description, event.from, event.to)
+    );
   });
 
   test('gets all events', () => {

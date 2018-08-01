@@ -1,16 +1,17 @@
 /**
- * @overview Timeline class for tracking different types of events.
+ * @overview Timeline class for placing events on a timeline.
  *
  * Timeline consists of an array of events which follow a common data structure. Events can be of
- * any type but they still have to have the common event fields. The event data type is described
- * below.
+ * any type but they must follow the common event interface, as shown below.
  *
  * {
  *   "id": "String <unique identifier>",
  *   "type": "String <type of this event>",
- *   "timestamp": "Number <timestamp for this event>",
+ *   "from": "Number <timestamp for the start of this event>",
+ *   "to": "Number <timestamp for the end of this event>",
  *   "labels": "String[] <labels for this event>",
- *   "data": "Object <the body of data for this type of event>"
+ *   "description": "String <description for this event>",
+ *   "data": "Object? <the body of data for this type of event>"
  * }
  */
 
@@ -20,17 +21,35 @@ const ow = require('ow');
 
 class Timeline extends EventEmitter {
   /**
-   * @param {Object} _               Initialisation data.
-   * @param {Array}  _.events        All events in a chronological order.
-   * @param {Object} _.eventsById    Events by id for faster access.
-   * @param {Object} _.eventsByType  Events by type.
-   * @param {Object} _.eventsByLabel Events by label..
+   * @param {Array} [events] Events already on the timeline.
    * @constructor
    */
-  constructor({ events = [], eventsById = {}, eventsByType = {}, eventsByLabel = {} } = {}) {
+  constructor(events = []) {
     super();
 
-    this._timeline = { events, eventsById, eventsByType, eventsByLabel };
+    // For plugins to register commands
+    this._commands = {};
+
+    // Initialise the data for the events
+    this._timeline = events;
+
+    const { byId, byType, byLabel } = this._timeline.reduce(
+      (acc, event) => {
+        const { id, type } = event;
+
+        acc.byId[id] = event;
+        acc.byType[type] = [...(acc.byType[type] || []), event];
+
+        event.labels.forEach(label => {
+          acc.byLabel[label] = [...(acc.byLabel[label] || []), event];
+        });
+      },
+      { byId: {}, byType: {}, byLabel: {} }
+    );
+
+    this._eventsById = byId;
+    this._eventsByType = byType;
+    this._eventsByLabel = byLabel;
   }
 
   /**
@@ -54,7 +73,7 @@ class Timeline extends EventEmitter {
     // Filter before `since`
     if (options.since) {
       while (result.length) {
-        if (result[0].timestamp >= options.since) break;
+        if (result[0].from >= options.since) break;
         result.splice(0, 1);
       }
     }
@@ -62,7 +81,7 @@ class Timeline extends EventEmitter {
     // Filter after `until`
     if (options.until) {
       while (result.length) {
-        if (result.slice(-1)[0].timestamp <= options.until) break;
+        if (result.slice(-1)[0].from <= options.until) break;
         result.splice(result.length - 1, 1);
       }
     }
@@ -79,7 +98,7 @@ class Timeline extends EventEmitter {
     let index = arr.length - 1;
 
     while (true) {
-      if (index === -1 || arr[index].timestamp <= event.timestamp) {
+      if (index === -1 || arr[index].from <= event.from) {
         arr.splice(index + 1, 0, event);
         break;
       }
@@ -94,7 +113,7 @@ class Timeline extends EventEmitter {
    * @return {Array}            An array of matched events.
    */
   get(options) {
-    return this._getEvents(this._timeline.events, options);
+    return this._getEvents(this._timeline, options);
   }
 
   /**
@@ -105,7 +124,7 @@ class Timeline extends EventEmitter {
    */
   getByType(type, options) {
     ow(type, ow.string.minLength(1));
-    return this._getEvents(this._timeline.eventsByType[type] || [], options);
+    return this._getEvents(this._eventsByType[type] || [], options);
   }
 
   /**
@@ -116,41 +135,45 @@ class Timeline extends EventEmitter {
    */
   getByLabel(label, options) {
     ow(label, ow.string.minLength(1));
-    return this._getEvents(this._timeline.eventsByLabel[label] || [], options);
+    return this._getEvents(this._eventsByLabel[label] || [], options);
   }
 
   /**
    * Add a new event to the timeline.
-   * @param {String} type      Type of event.
-   * @param {Array}  labels    Labels for the event.
-   * @param {Number} timestamp Timestamp for the event.
-   * @param {Object} [data]    Data for the event.
+   * @param {String} type        Type of event.
+   * @param {Array}  labels      Labels for the event.
+   * @param {String} description Description for the event.
+   * @param {Number} from        Starting time for the event.
+   * @param {Number} to          Ending time for the event.
+   * @param {Object} [data]      Data for the event.
    */
-  add(type, timestamp, labels, data = null) {
+  add(type, labels, description, from, to, data = null) {
     // Validate parameters
     ow(type, ow.string.minLength(1));
-    ow(timestamp, ow.number.greaterThan(0));
     ow(labels, ow.array.nonEmpty.ofType(ow.string.minLength(1)));
+    ow(description, ow.string.minLength(1));
+    ow(from, ow.number.greaterThan(0));
+    ow(to, ow.number.greaterThan(0));
 
-    const event = { id: uuidv1(), type, timestamp, labels, data };
+    const event = { id: uuidv1(), type, labels, description, from, to, data };
 
     // Add the event to the data structure
-    this._timeline.eventsById[event.id] = event;
+    this._eventsById[event.id] = event;
 
-    this._addEventToCorrectIndex(event, this._timeline.events);
+    this._addEventToCorrectIndex(event, this._timeline);
 
-    if (!this._timeline.eventsByType[type]) {
-      this._timeline.eventsByType[type] = [];
+    if (!this._eventsByType[type]) {
+      this._eventsByType[type] = [];
     }
 
-    this._addEventToCorrectIndex(event, this._timeline.eventsByType[type]);
+    this._addEventToCorrectIndex(event, this._eventsByType[type]);
 
     labels.forEach(label => {
-      if (!this._timeline.eventsByLabel[label]) {
-        this._timeline.eventsByLabel[label] = [];
+      if (!this._eventsByLabel[label]) {
+        this._eventsByLabel[label] = [];
       }
 
-      this._addEventToCorrectIndex(event, this._timeline.eventsByLabel[label]);
+      this._addEventToCorrectIndex(event, this._eventsByLabel[label]);
     });
 
     // Trigger the `save` event so that the updated timeline can be saved to eg. database
@@ -162,22 +185,22 @@ class Timeline extends EventEmitter {
    * @param {String} id Id of the event to remove.
    */
   remove(id) {
-    if (!this._timeline.eventsById[id]) return;
+    if (!this._eventsById[id]) return;
 
-    const { type, labels } = this._timeline.eventsById[id];
+    const { type, labels } = this._eventsById[id];
 
     // Delete the event from the data structure
-    delete this._timeline.eventsById[id];
+    delete this._eventsById[id];
 
-    const index = this._timeline.events.findIndex(e => e.id === id);
-    this._timeline.events.splice(index, 1);
+    const index = this._timeline.findIndex(e => e.id === id);
+    this._timeline.splice(index, 1);
 
-    const indexByType = this._timeline.eventsByType[type].findIndex(e => e.id === id);
-    this._timeline.eventsByType[type].splice(indexByType, 1);
+    const indexByType = this._eventsByType[type].findIndex(e => e.id === id);
+    this._eventsByType[type].splice(indexByType, 1);
 
     labels.forEach(label => {
-      const indexByLabel = this._timeline.eventsByLabel[label].findIndex(e => e.id === id);
-      this._timeline.eventsByLabel[label].splice(indexByLabel, 1);
+      const indexByLabel = this._eventsByLabel[label].findIndex(e => e.id === id);
+      this._eventsByLabel[label].splice(indexByLabel, 1);
     });
   }
 
