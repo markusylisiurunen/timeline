@@ -108,6 +108,41 @@ class Timeline extends EventEmitter {
   }
 
   /**
+   * Register a command for the timeline.
+   * @param {String}   command       Command to register.
+   * @param {Function} handler       Handler for the command.
+   * @param {String}   documentation Documentation for this command.
+   */
+  registerCommand(command, handler, documentation) {
+    if (this._commands[command]) {
+      throw new Error('Command already registered.');
+    }
+
+    this._commands[command] = { handler, documentation };
+  }
+
+  /**
+   * Execute a registered command.
+   * @param {String} command Command to execute.
+   */
+  executeCommand(command) {
+    if (!this._commands[command]) {
+      throw new Error('Tried to execute an unregistered command.');
+    }
+
+    this._commands[command].handler(this);
+  }
+
+  /**
+   * Get a registered command's documentation.
+   * @param  {String}      command Command to get the documentation for.
+   * @return {String|null}         The documentation or null.
+   */
+  getDocumentation(command) {
+    return this._commands[command] ? this._commands[command].documentation : null;
+  }
+
+  /**
    * Get events from the list of all events.
    * @param  {Object} [options] Options for filtering events.
    * @return {Array}            An array of matched events.
