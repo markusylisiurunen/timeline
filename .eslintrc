@@ -1,7 +1,10 @@
 {
   "parser": "babel-eslint",
-  "extends": ["prettier"],
-  "plugins": ["prettier"],
+  "extends": ["standard", "prettier"],
+  "plugins": ["prettier", "jest"],
+  "env": {
+    "jest/globals": true
+  },
   "rules": {
     "prettier/prettier": "error"
   }
