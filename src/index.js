@@ -2,27 +2,26 @@
 
 const minimist = require('minimist');
 const Configstore = require('configstore');
-const docs = require('./docs');
-const commands = require('./commands');
-const Tracker = require('./classes/Tracker');
-
 const pkg = require('../package.json');
+const Timeline = require('./Timeline');
 
-// Initialise the tracker
-const config = new Configstore(pkg.name, { entriesByLabel: {}, entries: [] });
-const tracker = new Tracker(config.all);
-
-tracker.on('save', data => config.set(data));
-
-// Read the arguments passed to the program
 const args = minimist(process.argv.slice(2));
 
-// Print documentation if the -h or --help flags are present or if incorrect
-// command is passed
-if (args.h || args.help || !args._.length || !commands[args._[0]]) {
-  process.stdout.write(docs(args._.join('.')));
+const config = new Configstore(pkg.name, {});
+const timeline = new Timeline(config.all.events || []);
+
+// Initialise plugins
+const plugins = [require('./plugins/work'), require('./plugins/google-calendar')];
+
+plugins.forEach(plugin => plugin(args, config, timeline));
+
+// Show documentation for a command if needed
+if (args.help || args.h || !args._.length) {
+  const documentation = timeline.getDocumentation(args._.join('.'));
+
+  process.stdout.write(documentation || 'Invalid command.\n');
   process.exit();
 }
 
-// Call the correct command handler
-commands[args._[0]](args, tracker).catch(e => console.log(e.toString()));
+// Execute the wanted command
+timeline.executeCommand(args._.join('.'));
