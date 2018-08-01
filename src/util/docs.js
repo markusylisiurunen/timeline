@@ -29,7 +29,7 @@ module.exports = {
       // Push each row to the content
       rows.forEach(row => {
         const columns = row.map((col, i) => col.padEnd(columnWidths[i]));
-        content += `\n  ${columns.join(' ')}`;
+        content += `\n  ${columns.join('   ')}`;
       });
 
       return content;
