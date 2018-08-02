@@ -11,9 +11,7 @@ const config = new Configstore(pkg.name, {});
 const timeline = new Timeline(config.all.events || []);
 
 // Initialise plugins
-const plugins = [require('./plugins/work'), require('./plugins/google-calendar')];
-
-plugins.forEach(plugin => plugin(args, config, timeline));
+require('./plugins')(args, config, timeline);
 
 // Show documentation for a command if needed
 const command = args._.join('.');
