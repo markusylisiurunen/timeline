@@ -10,6 +10,8 @@ const args = minimist(process.argv.slice(2));
 const config = new Configstore(pkg.name, {});
 const timeline = new Timeline(config.all.events || []);
 
+timeline.on('save', data => config.set('events', data));
+
 // Initialise plugins
 require('./plugins')(args, config, timeline);
 
