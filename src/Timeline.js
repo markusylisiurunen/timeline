@@ -203,6 +203,8 @@ class Timeline extends EventEmitter {
 
     const event = { id: uuidv1(), type, labels, description, from, to, data };
 
+    event.labels.sort();
+
     // Add the event to the data structure
     this._eventsById[event.id] = event;
 
