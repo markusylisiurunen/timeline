@@ -31,4 +31,15 @@ module.exports = {
       ['$', 'timeline work live -s 2650 -S "01 Jan 2018 8:00" -f "01 Jan 2018 10:45"'],
     ]),
   ]),
+  report: docs.wrap([
+    docs.block.text('Usage: timeline work report [options]'),
+    docs.block.text('Print a report for a given period.'),
+    docs.block.list('Options', [
+      ['-s, --since',  'Since this time'],
+      ['-u, --until',  'Until this time'],
+    ]),
+    docs.block.list('Examples', [
+      ['$', 'timeline work report -s "01 Jan 2018 00:00" -u "01 Feb 2018 00:00"'],
+    ]),
+  ]),
 };

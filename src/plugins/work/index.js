@@ -70,8 +70,43 @@ const live = (args, config, timeline) => {
   }, 100);
 };
 
+/** Print a report for a given period. */
+const report = (args, config, timeline) => {
+  const flags = parseFlags(args, [['since', 's'], ['until', 'u']]);
+
+  // TODO: Validate.
+
+  const since = Date.parse(flags.since);
+  const until = Date.parse(flags.until);
+
+  const events = timeline.getByType('work', { since, until });
+
+  if (!events.length) {
+    console.log('No events found in the given period.');
+    return;
+  }
+
+  const head = ['From', 'To', 'Labels', 'Earnings'];
+  const rows = events.map(event => [
+    new Date(event.from).toLocaleString('ca-iso8601'),
+    new Date(event.to).toLocaleString('ca-iso8601'),
+    event.labels.join(', '),
+    `${event.data.earnings.toFixed(2)} €`,
+  ]);
+
+  const table = constructTable(head, rows, { alignRight: [3] });
+
+  const duration = events.reduce((total, e) => total + (e.to - e.from), 0);
+  const earnings = events.reduce((total, e) => total + e.data.earnings, 0);
+
+  // prettier-ignore
+  const summary = `   You have worked for ${prettyMs(duration)} and earned ${earnings.toFixed(2)} €.`;
+
+  console.log(`${table}${summary}\n`);
+};
+
 module.exports = async (args, config, timeline) => {
-  Object.entries({ add, live }).forEach(([name, handler]) => {
+  Object.entries({ add, live, report }).forEach(([name, handler]) => {
     timeline.registerCommand(
       `work.${name}`,
       handler.bind(null, args, config, timeline),
