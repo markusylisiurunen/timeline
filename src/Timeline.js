@@ -43,6 +43,8 @@ class Timeline extends EventEmitter {
         event.labels.forEach(label => {
           acc.byLabel[label] = [...(acc.byLabel[label] || []), event];
         });
+
+        return acc;
       },
       { byId: {}, byType: {}, byLabel: {} }
     );
