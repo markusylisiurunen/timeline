@@ -23,12 +23,12 @@ module.exports = {
     docs.block.text('Usage: timeline work live [options]'),
     docs.block.text('Record a new live entry and show a report.'),
     docs.block.list('Options', [
-      ['-s, --salary',  'Salary (0-100 is hourly, otherwise monthly)'],
-      ['-i, --include', 'Include events within duration'],
-      ['-f, --from',    'Starting time for the event'],
+      ['-s, --salary', 'Salary (0-100 is hourly, otherwise monthly)'],
+      ['-S, --since',  'Include events since time'],
+      ['-f, --from',   'Starting time for the event'],
     ]),
     docs.block.list('Examples', [
-      ['$', 'timeline work live -s 2650 -i "1h 30m" -f "01 Jan 2018 10:45"'],
+      ['$', 'timeline work live -s 2650 -S "01 Jan 2018 8:00" -f "01 Jan 2018 10:45"'],
     ]),
   ]),
 };

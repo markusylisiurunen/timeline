@@ -2,11 +2,12 @@
  * @overview Work plugin.
  */
 
-const parseDuration = require('parse-duration');
+const log = require('single-line-log').stdout;
 const prettyMs = require('pretty-ms');
 const documentation = require('./documentation');
 const { parseFlags } = require('../../util/flags');
 const { hourlySalary } = require('../../util/salary');
+const { constructTable } = require('../../util/table');
 
 /** Add a new work entry to the timeline. */
 const add = (args, config, timeline) => {
@@ -32,16 +33,16 @@ const add = (args, config, timeline) => {
 
 /** Record a new live event and show its report. */
 const live = (args, config, timeline) => {
-  const flags = parseFlags(args, [['salary', 's'], ['include', 'i'], ['from', 'f']]);
-
-  flags.include = parseDuration(flags.include);
+  const flags = parseFlags(args, [['salary', 's'], ['since', 'S'], ['from', 'f']]);
 
   // TODO: Validation.
 
   const from = Date.parse(flags.from);
+  const since = Date.parse(flags.since);
+
   const salaryPerHour = hourlySalary(flags.salary);
 
-  const events = timeline.getByType('work', { since: Date.now() - flags.include });
+  const events = timeline.getByType('work', { since });
 
   setInterval(() => {
     const duration = Date.now() - from;
@@ -50,13 +51,23 @@ const live = (args, config, timeline) => {
     let totalDuration = events.reduce((total, { from, to }) => total + (to - from), duration);
     let totalEarnings = events.reduce((total, { data }) => total + data.earnings, earnings);
 
-    totalDuration = prettyMs(totalDuration);
+    totalDuration = prettyMs(totalDuration, { secDecimalDigits: 0 });
     totalEarnings = `${totalEarnings.toFixed(2)} €`;
 
-    const summary = `You have worked ${totalDuration} and earned ${totalEarnings}.`;
+    const headers = ['Labels', 'Duration', 'Earnings'];
+    const rows = [...events, { labels: ['!live'], from, to: Date.now(), data: { earnings } }].map(
+      event => [
+        event.labels.join(', '),
+        prettyMs(event.to - event.from, { secDecimalDigits: 0 }),
+        `${event.data.earnings.toFixed(2)} €`,
+      ]
+    );
 
-    console.log(summary);
-  }, 250);
+    const table = constructTable(headers, rows, { alignRight: [2] });
+    const summary = `   You have worked for ${totalDuration} and earned ${totalEarnings}.`;
+
+    log(`${table}${summary}\n`);
+  }, 100);
 };
 
 module.exports = async (args, config, timeline) => {
