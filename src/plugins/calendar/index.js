@@ -83,8 +83,8 @@ const init = async (_, configstore) => {
           console.log("Didn't find an existing calendar, created a new one.");
         }
 
-        config.set('calendar.credentials', credentials);
-        config.set('calendar.calendarId', calendar.id);
+        configstore.set('calendar.credentials', credentials);
+        configstore.set('calendar.calendarId', calendar.id);
 
         console.log('Calendar plugin is now set up.');
       })();
@@ -103,8 +103,8 @@ const reset = async (_, configstore) => {
   const credentials = configstore.get('calendar.credentials');
 
   if (credentials) {
-    config.set('calendar.credentials', null);
-    config.set('calendar.calendarId', null);
+    configstore.set('calendar.credentials', null);
+    configstore.set('calendar.calendarId', null);
 
     await util.authorization.revoke(credentials.accessToken);
   }
@@ -125,7 +125,7 @@ const onAdd = async (configstore, timeline, event) => {
   let { credentials, calendarId, colors = {} } = configstore.get('calendar');
 
   if (!colors[event.type]) {
-    config.set(
+    configstore.set(
       `calendar.colors.${event.type}`,
       `#${Array.from({ length: 6 })
         .map(() => Math.floor(Math.random() * 10))
