@@ -13,6 +13,13 @@
  *   "description": "String <description for this event>",
  *   "data": "Object? <the body of data for this type of event>"
  * }
+ *
+ * Timeline also emits some events which plugins can use as hooks. The following is a complete list
+ * of emitted events.
+ *
+ *   event.add     (timeline, event)  A new event was added.
+ *   event.update  (timeline, event)  An event was updated.
+ *   event.delete  (timeline, event)  An event was deleted.
  */
 
 const EventEmitter = require('events');
@@ -224,8 +231,7 @@ class Timeline extends EventEmitter {
       this._addEventToCorrectIndex(event, this._eventsByLabel[label]);
     });
 
-    // Trigger the `save` event so that the updated timeline can be saved to eg. database
-    this.emit('save', this._timeline);
+    this.emit('event.add', this, event);
   }
 
   /**
@@ -235,7 +241,8 @@ class Timeline extends EventEmitter {
   remove(id) {
     if (!this._eventsById[id]) return;
 
-    const { type, labels } = this._eventsById[id];
+    const event = this._eventsById[id];
+    const { type, labels } = event;
 
     // Delete the event from the data structure
     delete this._eventsById[id];
@@ -250,6 +257,8 @@ class Timeline extends EventEmitter {
       const indexByLabel = this._eventsByLabel[label].findIndex(e => e.id === id);
       this._eventsByLabel[label].splice(indexByLabel, 1);
     });
+
+    this.emit('event.delete', this, event);
   }
 
   /**
