@@ -2,18 +2,18 @@
 
 const minimist = require('minimist');
 const Configstore = require('configstore');
-const pkg = require('../package.json');
 const Timeline = require('./Timeline');
+const config = require('./config');
 
 const args = minimist(process.argv.slice(2));
 
-const config = new Configstore(pkg.name, {});
-const timeline = new Timeline(config.all.events || []);
+const configstore = new Configstore(config.name, {});
+const timeline = new Timeline(configstore.all.events || []);
 
-timeline.on('save', data => config.set('events', data));
+timeline.on('event.add', timeline => configstore.set('events', timeline.get()));
 
 // Initialise plugins
-require('./plugins')(args, config, timeline);
+require('./plugins')(args, configstore, timeline);
 
 // Show documentation for a command if needed
 const command = args._.join('.');
