@@ -23,6 +23,7 @@
     "eslint.fix": "eslint --fix **/*.js",
     "eslint.lint": "eslint **/*.js",
     "lint": "npm run eslint.lint && npm run prettier.lint",
+    "start": "NODE_ENV=dev node ./src/index.js",
     "test": "jest",
     "prettier.fix": "prettier --write **/*.{js,md}",
     "prettier.lint": "prettier --list-different **/*.{js,md}"
