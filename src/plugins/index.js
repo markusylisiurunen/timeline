@@ -2,6 +2,12 @@
  * @overview Group all plugins together.
  */
 
-module.exports = (args, config, timeline) => {
-  [require('./work'), require('./calendar')].forEach(plugin => plugin(args, config, timeline));
+module.exports = (...args) => {
+  // prettier-ignore
+  [
+    require('./calendar'),
+    require('./google'),
+    require('./sheets'),
+    require('./work'),
+  ].forEach(plugin => plugin(...args));
 };
