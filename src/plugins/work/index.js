@@ -9,8 +9,12 @@ const { parseFlags } = require('../../util/flags');
 const { hourlySalary } = require('../../util/salary');
 const { constructTable } = require('../../util/table');
 
-/** Add a new work entry to the timeline. */
-const add = (args, config, timeline) => {
+/**
+ * Add a new work entry to the timeline.
+ * @param {Object} args    Arguments passed to the progran.
+ * @param {Object} context Context object.
+ */
+const add = (args, { timeline }) => {
   const flags = parseFlags(args, [['label', 'l'], ['salary', 's'], ['from', 'f'], ['to', 't']]);
 
   flags.label = Array.isArray(flags.label) ? flags.label : [flags.label];
@@ -31,8 +35,12 @@ const add = (args, config, timeline) => {
   console.log('Done.');
 };
 
-/** Record a new live event and show its report. */
-const live = (args, config, timeline) => {
+/**
+ * Record a new live event and show its report.
+ * @param {Object} args    Arguments passed to the progran.
+ * @param {Object} context Context object.
+ */
+const live = (args, { timeline }) => {
   const flags = parseFlags(args, [['salary', 's'], ['since', 'S'], ['from', 'f']]);
 
   // TODO: Validation.
@@ -70,8 +78,12 @@ const live = (args, config, timeline) => {
   }, 100);
 };
 
-/** Print a report for a given period. */
-const report = (args, config, timeline) => {
+/**
+ * Print a report for a given period.
+ * @param {Object} args    Arguments passed to the progran.
+ * @param {Object} context Context object.
+ */
+const report = (args, { timeline }) => {
   const flags = parseFlags(args, [['since', 's'], ['until', 'u']]);
 
   // TODO: Validate.
@@ -105,12 +117,9 @@ const report = (args, config, timeline) => {
   console.log(`${table}${summary}\n`);
 };
 
-module.exports = async (args, config, timeline) => {
+module.exports = async (args, context) => {
   Object.entries({ add, live, report }).forEach(([name, handler]) => {
-    timeline.registerCommand(
-      `work.${name}`,
-      handler.bind(null, args, config, timeline),
-      documentation[name]
-    );
+    const command = handler.bind(null, args, context);
+    context.commands.register(`work.${name}`, command, documentation[name]);
   });
 };
