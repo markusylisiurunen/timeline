@@ -6,7 +6,7 @@ const args = minimist(process.argv.slice(2));
 const context = createContext();
 
 // Initialise plugins
-initPlugins(context);
+initPlugins(args, context);
 
 // Show documentation if needed
 const command = args._.join('.');
@@ -15,7 +15,7 @@ const requestsHelp = args.help || args.h;
 const isValidCommand = context.commands.isValid(command);
 
 if (requestsHelp || !isValidCommand) {
-  process.stdout.write(context.commands.getHelp(command));
+  process.stdout.write(context.commands.help(command));
   process.exit();
 }
 
