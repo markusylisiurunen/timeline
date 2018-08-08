@@ -1,29 +1,23 @@
-#!/usr/bin/env node
-
 const minimist = require('minimist');
-const Configstore = require('configstore');
-const Timeline = require('./Timeline');
-const config = require('./config');
+const initPlugins = require('./plugins');
+const { createContext } = require('./modules/context');
 
 const args = minimist(process.argv.slice(2));
-
-const configstore = new Configstore(config.name, {});
-const timeline = new Timeline(configstore.all.events || []);
-
-timeline.on('event.add', timeline => configstore.set('events', timeline.get()));
+const context = createContext();
 
 // Initialise plugins
-require('./plugins')(args, configstore, timeline);
+initPlugins(context);
 
-// Show documentation for a command if needed
+// Show documentation if needed
 const command = args._.join('.');
 
-if (args.help || args.h || !args._.length || !timeline.hasCommand(command)) {
-  const documentation = timeline.getDocumentation(command);
+const requestsHelp = args.help || args.h;
+const isValidCommand = context.commands.isValid(command);
 
-  process.stdout.write(documentation || 'Invalid command.\n');
+if (requestsHelp || !isValidCommand) {
+  process.stdout.write(context.commands.getHelp(command));
   process.exit();
 }
 
 // Execute the wanted command
-timeline.executeCommand(command);
+context.commands.execute(command, args, context);
