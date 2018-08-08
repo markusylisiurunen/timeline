@@ -25,6 +25,8 @@ class Lifecycle extends EventEmitter {
    * @return {Promise}
    */
   async emit(eventName, ...args) {
+    if (!this.listenerCount(eventName)) return;
+
     return new Promise((resolve, reject) => {
       super.emit(eventName, resolve, reject, ...args);
     });
