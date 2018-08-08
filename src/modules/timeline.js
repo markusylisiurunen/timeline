@@ -17,9 +17,9 @@
  * Timeline also emits some events which plugins can use as hooks. The following is a complete list
  * of emitted events.
  *
- *   event.add     (timeline, event)  A new event was added.
- *   event.update  (timeline, event)  An event was updated.
- *   event.delete  (timeline, event)  An event was deleted.
+ *   event.add     (event)  A new event was added.
+ *   event.update  (event)  An event was updated.
+ *   event.delete  (event)  An event was deleted.
  */
 
 const EventEmitter = require('events');
@@ -231,7 +231,7 @@ class Timeline extends EventEmitter {
       this._addEventToCorrectIndex(event, this._eventsByLabel[label]);
     });
 
-    this.emit('event.add', this, event);
+    this.emit('event.add', event);
   }
 
   /**
@@ -258,7 +258,7 @@ class Timeline extends EventEmitter {
       this._eventsByLabel[label].splice(indexByLabel, 1);
     });
 
-    this.emit('event.delete', this, event);
+    this.emit('event.delete', event);
   }
 
   /**
