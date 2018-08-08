@@ -2,7 +2,9 @@
  * @overview Context to be passed to every plugin.
  */
 
-const EventEmitter = require('events');
+const Configstore = require('configstore');
+const config = require('../config');
+const Lifecycle = require('./lifecycle');
 const Commands = require('./commands');
 const Timeline = require('./timeline');
 
@@ -11,7 +13,8 @@ const Timeline = require('./timeline');
  * @return {Object} A new context.
  */
 const createContext = () => ({
-  lifecycle: new EventEmitter(),
+  configstore: new Configstore(config.name, {}),
+  lifecycle: new Lifecycle(),
   commands: new Commands(),
   timeline: new Timeline(),
 });

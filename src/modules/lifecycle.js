@@ -12,7 +12,7 @@ class Lifecycle extends EventEmitter {
    * @param {Function} listener  Listener for the event.
    */
   on(eventName, listener) {
-    this.super.on(eventName, (resolve, reject, ...args) =>
+    super.on(eventName, (resolve, reject, ...args) =>
       listener(...args)
         .then(resolve)
         .catch(reject)
@@ -26,7 +26,7 @@ class Lifecycle extends EventEmitter {
    */
   async emit(eventName, ...args) {
     return new Promise((resolve, reject) => {
-      this.super.emit(eventName, resolve, reject, ...args);
+      super.emit(eventName, resolve, reject, ...args);
     });
   }
 }
