@@ -3,9 +3,38 @@
  */
 
 const config = require('../../config');
-const { getCodes, poll, revokeTokens } = require('./util');
+const { getCodes, poll, revokeTokens, refreshAccessToken } = require('./util');
 
-let refreshToken = async (args, context) => {};
+/**
+ * Refresh the user's access token if it has expired.
+ * @param {Object} args    Parsed arguments.
+ * @param {Object} context Context object.
+ */
+let refreshToken = async (args, { configstore }) => {
+  const credentials = configstore.get('google.credentials');
+
+  if (!credentials || credentials.expiresAt > Date.now() - 30 * 1000) return;
+
+  let tokens = null;
+
+  try {
+    tokens = await refreshAccessToken(
+      config.google.clientId,
+      config.google.clientSecret,
+      credentials.refreshToken
+    );
+  } catch (error) {
+    configstore.delete('google.credentials');
+    return;
+  }
+
+  configstore.set('google.credentials', {
+    ...credentials,
+    accessToken: tokens.access_token,
+    tokenType: tokens.token_type,
+    expiresAt: Date.now() + tokens.expires_in * 1000,
+  });
+};
 
 /**
  * Authenticate the user with Google Calendar and Sheets.

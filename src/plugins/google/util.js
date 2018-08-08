@@ -69,4 +69,28 @@ const revokeTokens = async accessToken => {
   if (!res.ok) throw data;
 };
 
-module.exports = { getCodes, poll, revokeTokens };
+/**
+ * Refresh a previously acquired access token.
+ * @param  {String}  clientId     Client id for this plugin.
+ * @param  {String}  clientSecret Client secret for this plugin.
+ * @param  {String}  refreshToken Refresh token to use.
+ * @return {Promise}              Resolved once refreshed.
+ */
+const refreshAccessToken = async (clientId, clientSecret, refreshToken) => {
+  const url = 'https://www.googleapis.com/oauth2/v4/token';
+  const query = querystring.stringify({
+    refresh_token: refreshToken,
+    client_id: clientId,
+    client_secret: clientSecret,
+    grant_type: 'refresh_token',
+  });
+
+  const res = await fetch(`${url}?${query}`, { method: 'POST' });
+  const data = await res.json();
+
+  if (!res.ok) throw data;
+
+  return data;
+};
+
+module.exports = { getCodes, poll, revokeTokens, refreshAccessToken };
