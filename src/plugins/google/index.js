@@ -3,7 +3,7 @@
  */
 
 const config = require('../../config');
-const { getCodes, poll } = require('./util');
+const { getCodes, poll, revokeTokens } = require('./util');
 
 let refreshToken = async (args, context) => {};
 
@@ -61,7 +61,22 @@ let authenticate = async (args, { configstore }) => {
   }, codes.interval * 1000);
 };
 
-let revoke = async (args, context) => {};
+/**
+ * Revoke previously granted permissions.
+ * @param {Object} args    Parsed arguments.
+ * @param {Object} context Context object.
+ */
+let revoke = async (args, { configstore }) => {
+  const credentials = configstore.get('google.credentials');
+
+  configstore.delete('google.credentials');
+
+  if (credentials) {
+    await revokeTokens(credentials.accessToken);
+  }
+
+  console.log('Google plugin has been reset.');
+};
 
 module.exports = (args, context) => {
   const { lifecycle, commands } = context;

@@ -54,4 +54,19 @@ const poll = async (clientId, clientSecret, deviceCode) => {
   return data;
 };
 
-module.exports = { getCodes, poll };
+/**
+ * Revoke granted permissions.
+ * @param  {String}  accessToken Previously acquired access token.
+ * @return {Promise}             Resolved once revoked.
+ */
+const revokeTokens = async accessToken => {
+  const url = 'https://accounts.google.com/o/oauth2/revoke';
+  const query = querystring.stringify({ token: accessToken });
+
+  const res = await fetch(`${url}?${query}`, { method: 'POST' });
+  const data = await res.json();
+
+  if (!res.ok) throw data;
+};
+
+module.exports = { getCodes, poll, revokeTokens };
