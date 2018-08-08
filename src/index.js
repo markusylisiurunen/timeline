@@ -5,19 +5,29 @@ const { createContext } = require('./modules/context');
 const args = minimist(process.argv.slice(2));
 const context = createContext();
 
-// Initialise plugins
-initPlugins(args, context);
+const main = async () => {
+  // Initialise plugins
+  initPlugins(args, context);
 
-// Show documentation if needed
-const command = args._.join('.');
+  await context.lifecycle.emit('init');
 
-const requestsHelp = args.help || args.h;
-const isValidCommand = context.commands.isValid(command);
+  // Show documentation if needed
+  const command = args._.join('.');
 
-if (requestsHelp || !isValidCommand) {
-  process.stdout.write(context.commands.help(command));
-  process.exit();
-}
+  const requestsHelp = args.help || args.h;
+  const isValidCommand = context.commands.isValid(command);
 
-// Execute the wanted command
-context.commands.execute(command, args, context);
+  if (requestsHelp || !isValidCommand) {
+    process.stdout.write(context.commands.help(command));
+    process.exit();
+  }
+
+  await context.lifecycle.emit('beforeCommand');
+
+  // Execute the wanted command
+  context.commands.execute(command, args, context);
+
+  await context.lifecycle.emit('afterCommand');
+};
+
+main();
