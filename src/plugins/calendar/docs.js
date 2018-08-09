@@ -14,6 +14,11 @@ module.exports = {
     ]),
   ]),
 
+  sync: docs.wrap([
+    docs.block.text('Usage: timeline calendar sync'),
+    docs.block.text('Sync all events to the Google Calendar.'),
+  ]),
+
   reset: docs.wrap([
     docs.block.text('Usage: timeline calendar reset'),
     docs.block.text('Reset the Google Calendar plugin.'),

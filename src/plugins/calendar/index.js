@@ -5,7 +5,7 @@
 const ow = require('ow');
 const docs = require('./docs');
 const { getOptions } = require('../../util/options');
-const { createSummary, createDescription, insertEvent } = require('./util');
+const { listEvents, insertEvent } = require('./util');
 
 /**
  * Initialise the Google Calendar plugin.
@@ -25,6 +25,46 @@ let init = async (args, { configstore }) => {
   }
 
   configstore.set('calendar.id', options.id);
+
+  console.log('Done.');
+};
+
+/**
+ * Sync all events to Google Calendar.
+ * @param {Object} args    Parsed arguments.
+ * @param {Object} context Context object.
+ */
+let sync = async (args, { configstore, timeline }) => {
+  const credentials = configstore.get('google.credentials');
+  const { id } = configstore.get('calendar') || {};
+
+  if (!(credentials && id)) {
+    console.log('Please grant permissions and set the calendar first.');
+    return;
+  }
+
+  let events = null;
+
+  try {
+    events = await listEvents(credentials, id);
+  } catch (error) {
+    console.log('An error occured.');
+    return;
+  }
+
+  const eventsInCalendar = new Set(events.map(({ id }) => id));
+
+  try {
+    await Promise.all(
+      timeline.get().map(async event => {
+        if (eventsInCalendar.has(event.id)) return;
+        await insertEvent(credentials, id, event);
+      })
+    );
+  } catch (error) {
+    console.log(error, 'An error occured.');
+    return;
+  }
 
   console.log('Done.');
 };
@@ -54,13 +94,8 @@ let onEventAdd = async (args, { configstore }, event) => {
     return;
   }
 
-  const start = { dateTime: new Date(event.from).toISOString() };
-  const end = { dateTime: new Date(event.to).toISOString() };
-  const summary = createSummary(event);
-  const description = createDescription(event);
-
   try {
-    await insertEvent(credentials, id, { start, end, summary, description });
+    await insertEvent(credentials, id, event);
   } catch (error) {
     console.log('ERROR (calendar): Failed to add the event.');
   }
@@ -74,6 +109,7 @@ module.exports = async (args, context) => {
   onEventAdd = onEventAdd.bind(null, args, context);
 
   commands.register('calendar.init', init, docs.init);
+  commands.register('calendar.sync', sync, docs.sync);
   commands.register('calendar.reset', reset, docs.reset);
 
   timeline.on('event.add', onEventAdd);

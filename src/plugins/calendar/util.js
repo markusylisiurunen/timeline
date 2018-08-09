@@ -3,6 +3,7 @@
  */
 
 const fetch = require('node-fetch');
+const querystring = require('querystring');
 
 /**
  * Create a summary from an event.
@@ -20,6 +21,45 @@ const createSummary = event =>
 const createDescription = event => `(id="${event.id}")`;
 
 /**
+ * List event ids in the Calendar.
+ * @param  {Object}          credentials Credentials for this plugin.
+ * @param  {String}          calendarId  Calendar to insert to.
+ * @return {Promise<Object>}             The inserted event.
+ */
+const listEvents = async (credentials, calendarId) => {
+  const url = `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events`;
+  const query = querystring.stringify({
+    maxResults: 2500,
+  });
+
+  const headers = {};
+
+  headers['Authorization'] = `${credentials.tokenType} ${credentials.accessToken}`;
+  headers['Accept'] = 'application/json';
+
+  const res = await fetch(`${url}?${query}`, { headers });
+  const data = await res.json();
+
+  if (!res.ok) throw data;
+
+  return data.items
+    ? data.items.map(event =>
+        event.description
+          .match(/\((.*)\)/)[1]
+          .split(',')
+          .map(piece => piece.trim())
+          .reduce(
+            (result, part) => ({
+              ...result,
+              [part.split('=')[0]]: part.split('=')[1].split('"')[1],
+            }),
+            {}
+          )
+      )
+    : [];
+};
+
+/**
  * Insert a new event to a calendar.
  * @param  {Object}          credentials Credentials for this plugin.
  * @param  {String}          calendarId  Calendar to insert to.
@@ -34,7 +74,12 @@ const insertEvent = async (credentials, calendarId, event) => {
   headers['Accept'] = 'application/json';
   headers['Content-Type'] = 'application/json';
 
-  const body = JSON.stringify(event);
+  const body = JSON.stringify({
+    start: { dateTime: new Date(event.from).toISOString() },
+    end: { dateTime: new Date(event.to).toISOString() },
+    summary: createSummary(event),
+    description: createDescription(event),
+  });
 
   const res = await fetch(url, { method: 'POST', headers, body });
   const data = await res.json();
@@ -44,4 +89,4 @@ const insertEvent = async (credentials, calendarId, event) => {
   return data;
 };
 
-module.exports = { createSummary, createDescription, insertEvent };
+module.exports = { createSummary, createDescription, listEvents, insertEvent };
