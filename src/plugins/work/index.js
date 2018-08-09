@@ -37,7 +37,7 @@ let add = async (args, { timeline }) => {
   }
 
   const hours = (options.to - options.from) / 3.6e6;
-  const prettyHours = prettyMs(hours, { secDecimalDigits: 0 });
+  const prettyHours = prettyMs(options.to - options.from, { secDecimalDigits: 0, verbose: true });
 
   const salaryPerHour = hourlySalary(options.salary);
   const earnings = hours * salaryPerHour;
