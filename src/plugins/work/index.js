@@ -5,6 +5,7 @@
 const ow = require('ow');
 const prettyMs = require('pretty-ms');
 const log = require('single-line-log').stdout;
+const docs = require('./docs');
 const { getOptions } = require('../../util/options');
 const { constructTable } = require('../../util/table');
 const { hourlySalary } = require('./util');
@@ -155,7 +156,7 @@ module.exports = (args, context) => {
   live = live.bind(null, args, context);
   report = report.bind(null, args, context);
 
-  commands.register('work.add', add, 'Help: `work add`');
-  commands.register('work.live', live, 'Help: `work live`');
-  commands.register('work.report', report, 'Help: `work report`');
+  commands.register('work.add', add, docs.add);
+  commands.register('work.live', live, docs.live);
+  commands.register('work.report', report, docs.report);
 };
