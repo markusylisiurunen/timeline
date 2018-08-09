@@ -22,12 +22,12 @@ const main = async () => {
     process.exit();
   }
 
-  await context.lifecycle.emit('beforeCommand');
+  await context.lifecycle.emit('preCommand');
 
   // Execute the wanted command
   context.commands.execute(command, args, context);
 
-  await context.lifecycle.emit('afterCommand');
+  await context.lifecycle.emit('postCommand');
 };
 
 main();
