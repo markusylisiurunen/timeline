@@ -24,7 +24,10 @@ let add = async (args, { timeline }) => {
     { name: 'to', flags: ['to', 't'], question: { message: 'Ended at:' } },
   ]);
 
-  options.labels = options.labels.split(',').map(l => l.trim());
+  options.labels = Array.isArray(options.labels)
+    ? options.labels
+    : options.labels.split(',').map(l => l.trim());
+
   options.salary = Number(options.salary);
 
   try {
