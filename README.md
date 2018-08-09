@@ -2,6 +2,12 @@
 
 A CLI application for tracking events on a timeline.
 
+## Installation
+
+```sh
+$ npm install -g @markusylisiurunen/timeline
+```
+
 ## Setup
 
 The application uses Google services (Calendar and Sheets) to display and store data. However, these
@@ -10,7 +16,7 @@ command.
 
 `$ timeline google authorize`
 
-This command will give you a URL and a code. To grant the required permissions, navigate to the
+This command will give you an URL and a code. To grant the required permissions, navigate to the
 provided URL and write the code once prompted.
 
 If you want to revoke the permissions, you can run the following command.
@@ -23,11 +29,16 @@ Here is a list of all available commands.
 
 | Command            | Description                                              |
 | ------------------ | -------------------------------------------------------- |
+| `calendar.init`    | Initialise the Google Calendar plugin.                   |
+| `calendar.reset`   | Reset the Google Calendar plugin.                        |
 | `calendar.sync`    | Synchronize your timeline with your Google Calendar.     |
 | `google.authorize` | Grant the application access to your Google services.    |
 | `google.revoke`    | Revoke the application's access to your Google services. |
+| `sheets.init`      | Initialise the Google Sheets plugin.                     |
+| `sheets.reset`     | Reset the Google Sheets plugin.                          |
 | `work.add`         | Add a new work event to your timeline.                   |
 | `work.live`        | Show a live report of your work events.                  |
+| `work.report`      | Show a report of your work events.                       |
 
 You can run the following command to get a more detailed description.
 
