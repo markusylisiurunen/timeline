@@ -4,7 +4,7 @@
 
 const ow = require('ow');
 const docs = require('./docs');
-const { insertEvent } = require('./util');
+const { listEvents, insertEvent } = require('./util');
 const { getOptions } = require('../../util/options');
 
 /**
@@ -43,6 +43,32 @@ let reset = async (args, { configstore }) => {
 };
 
 /**
+ * Load events from Google Sheet.
+ * @param {Object} args    Parsed arguments.
+ * @param {Object} context Context object.
+ */
+let loadEvents = async (args, { configstore, timeline }) => {
+  const credentials = configstore.get('google.credentials');
+  const { id, sheet } = configstore.get('sheets') || {};
+
+  if (!(credentials && id && sheet)) {
+    console.log('WARN (sheets): Events were not loaded.');
+    return;
+  }
+
+  let events = null;
+
+  try {
+    events = await listEvents(credentials, id, sheet);
+  } catch (error) {
+    console.log('ERROR (sheets): Failed to load the events.');
+    return;
+  }
+
+  timeline.init(events);
+};
+
+/**
  * Insert a new event to Google Sheets.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
@@ -65,11 +91,14 @@ let onEventAdd = async (args, { configstore }, event) => {
 };
 
 module.exports = async (args, context) => {
-  const { commands, timeline } = context;
+  const { lifecycle, commands, timeline } = context;
 
   init = init.bind(null, args, context);
   reset = reset.bind(null, args, context);
+  loadEvents = loadEvents.bind(null, args, context);
   onEventAdd = onEventAdd.bind(null, args, context);
+
+  lifecycle.on('preCommand', loadEvents);
 
   commands.register('sheets.init', init, docs.init);
   commands.register('sheets.reset', reset, docs.reset);
