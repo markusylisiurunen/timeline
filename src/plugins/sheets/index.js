@@ -7,11 +7,11 @@ const { insertEvent } = require('./util');
 const { getOptions } = require('../../util/options');
 
 /**
- * Set the active spreadsheet id and sheet name.
+ * Initialise the Google Sheets plugin.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-const set = async (args, { configstore }) => {
+let init = async (args, { configstore }) => {
   const options = await getOptions(args, [
     { name: 'id', flags: ['id'], question: { message: 'Spreadsheet id:' } },
     { name: 'sheet', flags: ['sheet'], question: { message: 'Sheet name:' } },
@@ -32,25 +32,46 @@ const set = async (args, { configstore }) => {
 };
 
 /**
+ * Reset the Google Sheets plugin.
+ * @param {Object} args    Parsed arguments.
+ * @param {Object} context Context object.
+ */
+let reset = async (args, { configstore }) => {
+  configstore.delete('sheets');
+  console.log('Done.');
+};
+
+/**
  * Insert a new event to Google Sheets.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  * @param {Object} event   Event to be added.
  */
-const onAdd = async (args, { configstore }, event) => {
+let onEventAdd = async (args, { configstore }, event) => {
   const credentials = configstore.get('google.credentials');
-  const spreadsheetId = configstore.get('sheets.id');
-  const sheetName = configstore.get('sheets.sheet');
+  const { id, sheet } = configstore.get('sheets') || {};
 
-  if (!credentials || !spreadsheetId || !sheetName) return;
+  if (!(credentials && id && sheet)) {
+    console.log('WARN (sheets): Event was not saved to Google Sheets.');
+    return;
+  }
 
-  await insertEvent(credentials, spreadsheetId, sheetName, event);
+  try {
+    await insertEvent(credentials, id, sheet, event);
+  } catch (error) {
+    console.log('ERROR (sheets): Failed to save the event.');
+  }
 };
 
 module.exports = async (args, context) => {
   const { commands, timeline } = context;
 
-  commands.register('sheets.set', set.bind(null, args, context), 'Help: set.');
+  init = init.bind(null, args, context);
+  reset = reset.bind(null, args, context);
+  onEventAdd = onEventAdd.bind(null, args, context);
 
-  timeline.on('event.add', onAdd.bind(null, args, context));
+  commands.register('sheets.init', init, 'Help: `sheets init`');
+  commands.register('sheets.reset', reset, 'Help: `sheets reset`');
+
+  timeline.on('event.add', onEventAdd);
 };
