@@ -5,8 +5,8 @@
 const { NODE_ENV } = process.env;
 
 const configs = {
-  dev: require('./config/dev'),
-  prod: require('./config/prod'),
+  dev: require('./configs/dev'),
+  prod: require('./configs/prod'),
 };
 
 module.exports = NODE_ENV && configs[NODE_ENV] ? configs[NODE_ENV] : configs['prod'];
