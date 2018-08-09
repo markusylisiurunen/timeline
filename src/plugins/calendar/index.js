@@ -2,7 +2,7 @@
  * @overview Plugin to integrate with Google Calendar.
  */
 
-const { insertEvent } = require('./util');
+const { createSummary, createDescription, insertEvent } = require('./util');
 const { parseFlags } = require('../../util/flags');
 
 /**
@@ -31,11 +31,12 @@ const onAdd = async (args, { configstore }, event) => {
 
   if (!credentials || !calendarId) return;
 
-  await insertEvent(credentials, calendarId, {
-    start: { dateTime: new Date(event.from).toISOString() },
-    end: { dateTime: new Date(event.to).toISOString() },
-    summary: event.description,
-  });
+  const start = { dateTime: new Date(event.from).toISOString() };
+  const end = { dateTime: new Date(event.to).toISOString() };
+  const summary = createSummary(event);
+  const description = createDescription(event);
+
+  await insertEvent(credentials, calendarId, { start, end, summary, description });
 };
 
 module.exports = async (args, context) => {

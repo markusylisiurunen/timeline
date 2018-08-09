@@ -5,6 +5,21 @@
 const fetch = require('node-fetch');
 
 /**
+ * Create a summary from an event.
+ * @param  {Object} event The event to create the summary from.
+ * @return {String}       Summary for the event.
+ */
+const createSummary = event =>
+  `${event.description} (type="${event.type}", labels="${event.labels.join(', ')}")`;
+
+/**
+ * Create a description from an event.
+ * @param  {Object} event The event to create the description from.
+ * @return {String}       Description for the event.
+ */
+const createDescription = event => `(id="${event.id}")`;
+
+/**
  * Insert a new event to a calendar.
  * @param  {Object}          credentials Credentials for this plugin.
  * @param  {String}          calendarId  Calendar to insert to.
@@ -29,4 +44,4 @@ const insertEvent = async (credentials, calendarId, event) => {
   return data;
 };
 
-module.exports = { insertEvent };
+module.exports = { createSummary, createDescription, insertEvent };
