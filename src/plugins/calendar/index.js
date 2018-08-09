@@ -3,6 +3,7 @@
  */
 
 const ow = require('ow');
+const docs = require('./docs');
 const { getOptions } = require('../../util/options');
 const { createSummary, createDescription, insertEvent } = require('./util');
 
@@ -72,8 +73,8 @@ module.exports = async (args, context) => {
   reset = reset.bind(null, args, context);
   onEventAdd = onEventAdd.bind(null, args, context);
 
-  commands.register('calendar.init', init, 'Help: `calendar init`');
-  commands.register('calendar.reset', reset, 'Help: `calendar reset`');
+  commands.register('calendar.init', init, docs.init);
+  commands.register('calendar.reset', reset, docs.reset);
 
   timeline.on('event.add', onEventAdd);
 };
