@@ -2,20 +2,39 @@
  * @overview Plugin to integrate with Google Calendar.
  */
 
+const ow = require('ow');
+const { getOptions } = require('../../util/options');
 const { createSummary, createDescription, insertEvent } = require('./util');
-const { parseFlags } = require('../../util/flags');
 
 /**
- * Set the active calendar id.
+ * Initialise the Google Calendar plugin.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-const setId = (args, { configstore }) => {
-  const flags = parseFlags(args, [['id']]);
+let init = async (args, { configstore }) => {
+  const options = await getOptions(args, [
+    { name: 'id', flags: ['id'], question: { message: 'Calendar id:' } },
+  ]);
 
-  // TODO: Validate.
+  try {
+    ow(options.id, ow.string.minLength(1));
+  } catch (error) {
+    console.log('Invalid options.');
+    return;
+  }
 
-  configstore.set('calendar.id', flags.id);
+  configstore.set('calendar.id', options.id);
+
+  console.log('Done.');
+};
+
+/**
+ * Reset the Google Calendar plugin.
+ * @param {Object} args    Parsed arguments.
+ * @param {Object} context Context object.
+ */
+let reset = async (args, { configstore }) => {
+  configstore.delete('calendar');
   console.log('Done.');
 };
 
@@ -25,24 +44,36 @@ const setId = (args, { configstore }) => {
  * @param {Object} context Context object.
  * @param {Object} event   Event to be added.
  */
-const onAdd = async (args, { configstore }, event) => {
+let onEventAdd = async (args, { configstore }, event) => {
   const credentials = configstore.get('google.credentials');
-  const calendarId = configstore.get('calendar.id');
+  const { id } = configstore.get('calendar') || {};
 
-  if (!credentials || !calendarId) return;
+  if (!(credentials && id)) {
+    console.log('WARN (calendar): Event was not added.');
+    return;
+  }
 
   const start = { dateTime: new Date(event.from).toISOString() };
   const end = { dateTime: new Date(event.to).toISOString() };
   const summary = createSummary(event);
   const description = createDescription(event);
 
-  await insertEvent(credentials, calendarId, { start, end, summary, description });
+  try {
+    await insertEvent(credentials, id, { start, end, summary, description });
+  } catch (error) {
+    console.log('ERROR (calendar): Failed to add the event.');
+  }
 };
 
 module.exports = async (args, context) => {
   const { commands, timeline } = context;
 
-  commands.register('calendar.set-id', setId.bind(null, args, context), 'Help: set-id.');
+  init = init.bind(null, args, context);
+  reset = reset.bind(null, args, context);
+  onEventAdd = onEventAdd.bind(null, args, context);
 
-  timeline.on('event.add', onAdd.bind(null, args, context));
+  commands.register('calendar.init', init, 'Help: `calendar init`');
+  commands.register('calendar.reset', reset, 'Help: `calendar reset`');
+
+  timeline.on('event.add', onEventAdd);
 };
