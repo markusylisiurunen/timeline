@@ -3,6 +3,7 @@
  */
 
 const ow = require('ow');
+const docs = require('./docs');
 const { insertEvent } = require('./util');
 const { getOptions } = require('../../util/options');
 
@@ -70,8 +71,8 @@ module.exports = async (args, context) => {
   reset = reset.bind(null, args, context);
   onEventAdd = onEventAdd.bind(null, args, context);
 
-  commands.register('sheets.init', init, 'Help: `sheets init`');
-  commands.register('sheets.reset', reset, 'Help: `sheets reset`');
+  commands.register('sheets.init', init, docs.init);
+  commands.register('sheets.reset', reset, docs.reset);
 
   timeline.on('event.add', onEventAdd);
 };
