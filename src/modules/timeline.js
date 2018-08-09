@@ -33,32 +33,7 @@ class Timeline extends EventEmitter {
    */
   constructor(events = []) {
     super();
-
-    // For plugins to register commands
-    this._commands = {};
-
-    // Initialise the data for the events
-    this._timeline = events;
-
-    const { byId, byType, byLabel } = this._timeline.reduce(
-      (acc, event) => {
-        const { id, type } = event;
-
-        acc.byId[id] = event;
-        acc.byType[type] = [...(acc.byType[type] || []), event];
-
-        event.labels.forEach(label => {
-          acc.byLabel[label] = [...(acc.byLabel[label] || []), event];
-        });
-
-        return acc;
-      },
-      { byId: {}, byType: {}, byLabel: {} }
-    );
-
-    this._eventsById = byId;
-    this._eventsByType = byType;
-    this._eventsByLabel = byLabel;
+    this.init(events);
   }
 
   /**
@@ -114,6 +89,38 @@ class Timeline extends EventEmitter {
 
       index -= 1;
     }
+  }
+
+  /**
+   * Initialise the timeline instance.
+   * @param {Array} [events] Events to be added on the timeline.
+   */
+  init(events) {
+    // For plugins to register commands
+    this._commands = {};
+
+    // Initialise the data for the events
+    this._timeline = events;
+
+    const { byId, byType, byLabel } = this._timeline.reduce(
+      (acc, event) => {
+        const { id, type } = event;
+
+        acc.byId[id] = event;
+        acc.byType[type] = [...(acc.byType[type] || []), event];
+
+        event.labels.forEach(label => {
+          acc.byLabel[label] = [...(acc.byLabel[label] || []), event];
+        });
+
+        return acc;
+      },
+      { byId: {}, byType: {}, byLabel: {} }
+    );
+
+    this._eventsById = byId;
+    this._eventsByType = byType;
+    this._eventsByLabel = byLabel;
   }
 
   /**
