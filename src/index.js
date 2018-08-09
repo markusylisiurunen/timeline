@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+
 const minimist = require('minimist');
 const initPlugins = require('./plugins');
 const { createContext } = require('./modules/context');
