@@ -2,6 +2,7 @@
  * @overview Plugin to integrate with Google services.
  */
 
+const docs = require('./docs');
 const config = require('../../config');
 const { getCodes, poll, revokeTokens, refreshAccessToken } = require('./util');
 
@@ -118,6 +119,6 @@ module.exports = (args, context) => {
   lifecycle.on('init', refreshToken);
 
   // Register commands for this plugin
-  commands.register('google.authenticate', authenticate, 'Help: authenticate.');
-  commands.register('google.revoke', revoke, 'Help: revoke.');
+  commands.register('google.authenticate', authenticate, docs.authenticate);
+  commands.register('google.revoke', revoke, docs.revoke);
 };
