@@ -52,7 +52,7 @@ let onEventAdd = async (args, { configstore }, event) => {
   const { id, sheet } = configstore.get('sheets') || {};
 
   if (!(credentials && id && sheet)) {
-    console.log('WARN (sheets): Event was not saved to Google Sheets.');
+    console.log('WARN (sheets): Event was not saved.');
     return;
   }
 
