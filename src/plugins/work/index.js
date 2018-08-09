@@ -2,59 +2,84 @@
  * @overview Work plugin.
  */
 
-const log = require('single-line-log').stdout;
+const ow = require('ow');
 const prettyMs = require('pretty-ms');
-const documentation = require('./documentation');
-const { parseFlags } = require('../../util/flags');
-const { hourlySalary } = require('../../util/salary');
+const log = require('single-line-log').stdout;
+const { getOptions } = require('../../util/options');
 const { constructTable } = require('../../util/table');
+const { hourlySalary } = require('./util');
 
 /**
  * Add a new work entry to the timeline.
- * @param {Object} args    Arguments passed to the progran.
+ * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-const add = (args, { timeline }) => {
-  const flags = parseFlags(args, [['label', 'l'], ['salary', 's'], ['from', 'f'], ['to', 't']]);
+let add = async (args, { timeline }) => {
+  const options = await getOptions(args, [
+    { name: 'labels', flags: ['label', 'l'], question: { message: 'Labels:' } },
+    { name: 'salary', flags: ['salary', 's'], question: { message: 'Salary:' } },
+    { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
+    { name: 'to', flags: ['to', 't'], question: { message: 'Ended at:' } },
+  ]);
 
-  flags.label = Array.isArray(flags.label) ? flags.label : [flags.label];
+  options.labels = options.labels.split(',').map(l => l.trim());
+  options.salary = Number(options.salary);
 
-  // TODO: Validation.
+  try {
+    ow(options.labels, ow.array.nonEmpty.ofType(ow.string.minLength(1)));
+    ow(options.salary, ow.number.greaterThanOrEqual(0));
 
-  const from = Date.parse(flags.from);
-  const to = Date.parse(flags.to);
-  const hours = (to - from) / 3.6e6;
+    options.from = Date.parse(options.from);
+    options.to = Date.parse(options.to);
+  } catch (error) {
+    console.log('Invalid options.');
+    return;
+  }
 
-  const salaryPerHour = hourlySalary(flags.salary);
+  const hours = (options.to - options.from) / 3.6e6;
+  const prettyHours = prettyMs(hours, { secDecimalDigits: 0 });
+
+  const salaryPerHour = hourlySalary(options.salary);
   const earnings = hours * salaryPerHour;
 
-  const description = `Spent ${hours.toFixed(2)} hours for ${earnings.toFixed(2)} €.`;
+  const description = `Worked for ${prettyHours} and earned ${earnings.toFixed(2)} €.`;
 
-  timeline.add('work', flags.label, description, from, to, { earnings });
+  timeline.add('work', options.labels, description, options.from, options.to, { earnings });
 
   console.log('Done.');
 };
 
 /**
- * Record a new live event and show its report.
- * @param {Object} args    Arguments passed to the progran.
+ * Show live report of a current work event.
+ * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-const live = (args, { timeline }) => {
-  const flags = parseFlags(args, [['salary', 's'], ['since', 'S'], ['from', 'f']]);
+let live = async (args, { timeline }) => {
+  const options = await getOptions(args, [
+    { name: 'salary', flags: ['salary', 's'], question: { message: 'Salary:' } },
+    { name: 'since', flags: ['since', 'S'], question: { message: 'Since:' } },
+    { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
+  ]);
 
-  // TODO: Validation.
+  options.salary = Number(options.salary);
 
-  const from = Date.parse(flags.from);
-  const since = Date.parse(flags.since);
+  try {
+    ow(options.salary, ow.number.greaterThanOrEqual(0));
 
-  const salaryPerHour = hourlySalary(flags.salary);
+    options.since = Date.parse(options.since);
+    options.from = Date.parse(options.from);
+  } catch (error) {
+    console.log('Invalid options.');
+    return;
+  }
 
-  const events = timeline.getByType('work', { since });
+  const salaryPerHour = hourlySalary(options.salary);
+
+  const events = timeline.getByType('work', { since: options.since });
 
   setInterval(() => {
-    const duration = Date.now() - from;
-    const earnings = ((Date.now() - from) / 3.6e6) * salaryPerHour;
+    const duration = Date.now() - options.from;
+    const earnings = (duration / 3.6e6) * salaryPerHour;
 
     let totalDuration = events.reduce((total, { from, to }) => total + (to - from), duration);
     let totalEarnings = events.reduce((total, { data }) => total + data.earnings, earnings);
@@ -63,38 +88,45 @@ const live = (args, { timeline }) => {
     totalEarnings = `${totalEarnings.toFixed(2)} €`;
 
     const headers = ['Labels', 'Duration', 'Earnings'];
-    const rows = [...events, { labels: ['!live'], from, to: Date.now(), data: { earnings } }].map(
-      event => [
-        event.labels.join(', '),
-        prettyMs(event.to - event.from, { secDecimalDigits: 0 }),
-        `${event.data.earnings.toFixed(2)} €`,
-      ]
-    );
+    const rows = [
+      ...events,
+      { labels: ['-'], from: options.from, to: Date.now(), data: { earnings } },
+    ].map(event => [
+      event.labels.join(', '),
+      prettyMs(event.to - event.from, { secDecimalDigits: 0 }),
+      `${event.data.earnings.toFixed(2)} €`,
+    ]);
 
     const table = constructTable(headers, rows, { alignRight: [2] });
-    const summary = `   You have worked for ${totalDuration} and earned ${totalEarnings}.`;
+    const summary = `   Worked for ${totalDuration} and earned ${totalEarnings}.`;
 
     log(`${table}${summary}\n`);
   }, 100);
 };
 
 /**
- * Print a report for a given period.
+ * Show a report of a given period.
  * @param {Object} args    Arguments passed to the progran.
  * @param {Object} context Context object.
  */
-const report = (args, { timeline }) => {
-  const flags = parseFlags(args, [['since', 's'], ['until', 'u']]);
+let report = async (args, { timeline }) => {
+  const options = await getOptions(args, [
+    { name: 'since', flags: ['since', 's'], question: { message: 'Since:' } },
+    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:' } },
+  ]);
 
-  // TODO: Validate.
+  try {
+    options.since = Date.parse(options.since);
+    options.until = Date.parse(options.until);
+  } catch (error) {
+    console.log('Invalid options.');
+    return;
+  }
 
-  const since = Date.parse(flags.since);
-  const until = Date.parse(flags.until);
-
-  const events = timeline.getByType('work', { since, until });
+  const events = timeline.getByType('work', { since: options.since, until: options.until });
 
   if (!events.length) {
-    console.log('No events found in the given period.');
+    console.log('No events found.');
     return;
   }
 
@@ -108,18 +140,22 @@ const report = (args, { timeline }) => {
 
   const table = constructTable(head, rows, { alignRight: [3] });
 
-  const duration = events.reduce((total, e) => total + (e.to - e.from), 0);
-  const earnings = events.reduce((total, e) => total + e.data.earnings, 0);
+  const duration = events.reduce((total, { to, from }) => total + (to - from), 0);
+  const earnings = events.reduce((total, event) => total + event.data.earnings, 0);
 
-  // prettier-ignore
-  const summary = `   You have worked for ${prettyMs(duration)} and earned ${earnings.toFixed(2)} €.`;
+  const summary = `   Worked for ${prettyMs(duration)} and earned ${earnings.toFixed(2)} €.`;
 
   console.log(`${table}${summary}\n`);
 };
 
-module.exports = async (args, context) => {
-  Object.entries({ add, live, report }).forEach(([name, handler]) => {
-    const command = handler.bind(null, args, context);
-    context.commands.register(`work.${name}`, command, documentation[name]);
-  });
+module.exports = (args, context) => {
+  const { commands } = context;
+
+  add = add.bind(null, args, context);
+  live = live.bind(null, args, context);
+  report = report.bind(null, args, context);
+
+  commands.register('work.add', add, 'Help: `work add`');
+  commands.register('work.live', live, 'Help: `work live`');
+  commands.register('work.report', report, 'Help: `work report`');
 };
