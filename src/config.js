@@ -2,28 +2,11 @@
  * @overview Configuration.
  */
 
-const pkg = require('../package.json');
-
 const { NODE_ENV } = process.env;
 
-// Define the configurations for different environments
-const configs = {};
-
-configs['dev'] = {
-  name: `${pkg.name}-dev`,
-  google: {
-    clientId: '194536656505-2oo1khnbsihdi3o2loss3cl2ivm2gr3c.apps.googleusercontent.com',
-    clientSecret: 'CiFlb8GjY74tonEKHZGr-TTI',
-  },
+const configs = {
+  dev: require('./config/dev'),
+  prod: require('./config/prod'),
 };
 
-configs['prod'] = {
-  name: pkg.name,
-  google: {
-    clientId: '194536656505-2oo1khnbsihdi3o2loss3cl2ivm2gr3c.apps.googleusercontent.com',
-    clientSecret: 'CiFlb8GjY74tonEKHZGr-TTI',
-  },
-};
-
-// Export the correct config
 module.exports = NODE_ENV && configs[NODE_ENV] ? configs[NODE_ENV] : configs['prod'];
