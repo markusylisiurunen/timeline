@@ -3,6 +3,21 @@
  */
 
 const { insertEvent } = require('./util');
+const { parseFlags } = require('../../util/flags');
+
+/**
+ * Set the active calendar id.
+ * @param {Object} args    Parsed arguments.
+ * @param {Object} context Context object.
+ */
+const setId = (args, { configstore }) => {
+  const flags = parseFlags(args, [['id']]);
+
+  // TODO: Validate.
+
+  configstore.set('calendar.id', flags.id);
+  console.log('Done.');
+};
 
 /**
  * Insert a new event to Google Calendar.
@@ -12,11 +27,9 @@ const { insertEvent } = require('./util');
  */
 const onAdd = async (args, { configstore }, event) => {
   const credentials = configstore.get('google.credentials');
+  const calendarId = configstore.get('calendar.id');
 
-  // FIXME: Calendar id should be set from a config
-  const calendarId = null;
-
-  if (!credentials) return;
+  if (!credentials || !calendarId) return;
 
   await insertEvent(credentials, calendarId, {
     start: { dateTime: new Date(event.from).toISOString() },
@@ -26,7 +39,9 @@ const onAdd = async (args, { configstore }, event) => {
 };
 
 module.exports = async (args, context) => {
-  const { timeline } = context;
+  const { commands, timeline } = context;
+
+  commands.register('calendar.set-id', setId.bind(null, args, context), 'Help: set-id.');
 
   timeline.on('event.add', onAdd.bind(null, args, context));
 };
