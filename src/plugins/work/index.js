@@ -8,6 +8,7 @@ const log = require('single-line-log').stdout;
 const docs = require('./docs');
 const { getOptions } = require('../../util/options');
 const { constructTable } = require('../../util/table');
+const { formatDate } = require('../../util/date');
 const { hourlySalary } = require('./util');
 
 /**
@@ -56,9 +57,15 @@ let add = async (args, { timeline }) => {
  * @param {Object} context Context object.
  */
 let live = async (args, { timeline }) => {
+  const defaultSince = new Date();
+
+  defaultSince.setHours(0);
+  defaultSince.setMinutes(0);
+
+  // prettier-ignore
   const options = await getOptions(args, [
     { name: 'salary', flags: ['salary', 's'], question: { message: 'Salary:' } },
-    { name: 'since', flags: ['since', 'S'], question: { message: 'Since:' } },
+    { name: 'since', flags: ['since', 'S'], question: { message: 'Since:', default: formatDate(defaultSince) } },
     { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
   ]);
 
@@ -111,9 +118,15 @@ let live = async (args, { timeline }) => {
  * @param {Object} context Context object.
  */
 let report = async (args, { timeline }) => {
+  const defaultSince = new Date();
+
+  defaultSince.setHours(0);
+  defaultSince.setMinutes(0);
+
+  // prettier-ignore
   const options = await getOptions(args, [
-    { name: 'since', flags: ['since', 's'], question: { message: 'Since:' } },
-    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:' } },
+    { name: 'since', flags: ['since', 's'], question: { message: 'Since:', default: formatDate(defaultSince) } },
+    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: formatDate(new Date()) } },
   ]);
 
   try {
