@@ -5,5 +5,6 @@
 const pkg = require('../../package.json');
 
 module.exports = {
+  ...require('./base'),
   name: `${pkg.name}-dev`,
 };
