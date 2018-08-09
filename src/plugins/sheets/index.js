@@ -2,21 +2,31 @@
  * @overview Plugin to integrate with Google Sheets.
  */
 
+const ow = require('ow');
 const { insertEvent } = require('./util');
-const { parseFlags } = require('../../util/flags');
+const { getOptions } = require('../../util/options');
 
 /**
  * Set the active spreadsheet id and sheet name.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-const set = (args, { configstore }) => {
-  const flags = parseFlags(args, [['id'], ['sheet']]);
+const set = async (args, { configstore }) => {
+  const options = await getOptions(args, [
+    { name: 'id', flags: ['id'], question: { message: 'Spreadsheet id:' } },
+    { name: 'sheet', flags: ['sheet'], question: { message: 'Sheet name:' } },
+  ]);
 
-  // TODO: Validate.
+  try {
+    ow(options.id, ow.string.minLength(1));
+    ow(options.sheet, ow.string.minLength(1));
+  } catch (error) {
+    console.log('Invalid options.');
+    return;
+  }
 
-  configstore.set('sheets.id', flags.id);
-  configstore.set('sheets.sheet', flags.sheet);
+  configstore.set('sheets.id', options.id);
+  configstore.set('sheets.sheet', options.sheet);
 
   console.log('Done.');
 };
