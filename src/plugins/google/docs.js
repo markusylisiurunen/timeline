@@ -7,8 +7,8 @@ const docs = require('../../util/docs');
 // prettier-ignore
 module.exports = {
   authenticate: docs.wrap([
-    docs.block.text('Usage: timeline google authenticate'),
-    docs.block.text('Authenticate the Google plugin with your Google account.'),
+    docs.block.text('Usage: timeline google authorize'),
+    docs.block.text('Authorize the Google plugin with your Google account.'),
   ]),
 
   revoke: docs.wrap([

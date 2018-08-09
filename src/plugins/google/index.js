@@ -38,11 +38,11 @@ let refreshToken = async (args, { configstore }) => {
 };
 
 /**
- * Authenticate the user with Google Calendar and Sheets.
+ * Authorize the user with Google Calendar and Sheets.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-let authenticate = async (args, { configstore }) => {
+let authorize = async (args, { configstore }) => {
   const codes = await getCodes(config.google.clientId);
 
   console.log(`Open you browser at ${codes.verification_url} and enter the following code.`);
@@ -112,13 +112,13 @@ module.exports = (args, context) => {
   const { lifecycle, commands } = context;
 
   refreshToken = refreshToken.bind(null, args, context);
-  authenticate = authenticate.bind(null, args, context);
+  authorize = authorize.bind(null, args, context);
   revoke = revoke.bind(null, args, context);
 
   // Refresh the access token on init if necessary
   lifecycle.on('init', refreshToken);
 
   // Register commands for this plugin
-  commands.register('google.authenticate', authenticate, docs.authenticate);
+  commands.register('google.authorize', authorize, docs.authorize);
   commands.register('google.revoke', revoke, docs.revoke);
 };
