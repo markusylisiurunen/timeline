@@ -1,6 +1,5 @@
 ![build status](https://travis-ci.org/markusylisiurunen/timeline.svg?branch=master)
 ![npm version](https://badge.fury.io/js/%40markusylisiurunen%2Ftimeline.svg)
-![npm dependencies](https://david-dm.org/markusylisiurunen/timeline.svg)
 ![github issues](https://img.shields.io/github/issues/markusylisiurunen/timeline.svg)
 ![license](https://img.shields.io/github/license/markusylisiurunen/timeline.svg)
 
