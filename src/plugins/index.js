@@ -6,6 +6,7 @@ module.exports = (...args) => {
   // prettier-ignore
   [
     require('./calendar'),
+    require('./event'),
     require('./google'),
     require('./sheets'),
     require('./work'),
