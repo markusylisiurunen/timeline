@@ -53,13 +53,14 @@ const getColorId = (() => {
     if (!colors || !colors.length) return null;
 
     const eventTag = `${event.type}-${event.labels.join('-')}`;
-    let eventTagNumber = 0;
+    let hash = 0;
 
-    for (let i = 1; i <= eventTag.length; i += 1) {
-      eventTagNumber += eventTag.charCodeAt(eventTag.length - i) * 10 ** (i - 1);
+    for (let i = 0; i < eventTag.length; i += 1) {
+      hash = (hash << 5) - hash + eventTag.charCodeAt(i);
+      hash |= 0;
     }
 
-    return colors[eventTagNumber % colors.length];
+    return colors[hash % colors.length];
   };
 })();
 
