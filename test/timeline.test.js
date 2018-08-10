@@ -1,4 +1,4 @@
-const Timeline = require('../src/Timeline');
+const Timeline = require('../src/modules/timeline');
 
 describe('adding events', () => {
   let timeline = null;
