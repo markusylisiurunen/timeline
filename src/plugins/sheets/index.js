@@ -4,7 +4,7 @@
 
 const ow = require('ow');
 const docs = require('./docs');
-const { listEvents, insertEvent } = require('./util');
+const { getSpreadsheet, listEvents, insertEvent } = require('./util');
 const { getOptions } = require('../../util/options');
 
 /**
@@ -13,6 +13,7 @@ const { getOptions } = require('../../util/options');
  * @param {Object} context Context object.
  */
 let init = async (args, { configstore }) => {
+  const credentials = configstore.get('google.credentials');
   const options = await getOptions(args, [
     { name: 'id', flags: ['id'], question: { message: 'Spreadsheet id:' } },
     { name: 'sheet', flags: ['sheet'], question: { message: 'Sheet name:' } },
@@ -26,8 +27,18 @@ let init = async (args, { configstore }) => {
     return;
   }
 
+  let sheet = null;
+
+  try {
+    sheet = await getSpreadsheet(credentials, options.id);
+  } catch (error) {
+    console.log('Failed to initialise.');
+    return;
+  }
+
   configstore.set('sheets.id', options.id);
   configstore.set('sheets.sheet', options.sheet);
+  configstore.set('sheets.locale', sheet.properties.locale);
 
   console.log('Done.');
 };
@@ -76,7 +87,7 @@ let loadEvents = async (args, { configstore, timeline }) => {
  */
 let onEventAdd = async (args, { configstore }, event) => {
   const credentials = configstore.get('google.credentials');
-  const { id, sheet } = configstore.get('sheets') || {};
+  const { id, sheet, locale } = configstore.get('sheets') || {};
 
   if (!(credentials && id && sheet)) {
     console.log('WARN (sheets): Event was not saved.');
@@ -84,7 +95,7 @@ let onEventAdd = async (args, { configstore }, event) => {
   }
 
   try {
-    await insertEvent(credentials, id, sheet, event);
+    await insertEvent(credentials, locale, id, sheet, event);
   } catch (error) {
     console.log('ERROR (sheets): Failed to save the event.');
   }
