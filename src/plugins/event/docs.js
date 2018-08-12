@@ -16,4 +16,13 @@ module.exports = {
       ['[--to, -t]',          'Ending time for the event'],
     ]),
   ]),
+
+  reportByLabel: docs.wrap([
+    docs.block.text('Usage: timeline event report label [options]'),
+    docs.block.text('Show a report by labels.'),
+    docs.block.list('Options', [
+      ['[--since, -s]', 'Include events since'],
+      ['[--until, -u]', 'Include events until'],
+    ]),
+  ]),
 };
