@@ -14,6 +14,12 @@ const { getOptions } = require('../../util/options');
  */
 let init = async (args, { configstore }) => {
   const credentials = configstore.get('google.credentials');
+
+  if (!credentials) {
+    console.log('Google API credentials not found.');
+    return;
+  }
+
   const options = await getOptions(args, [
     { name: 'id', flags: ['id'], question: { message: 'Spreadsheet id:' } },
     { name: 'sheet', flags: ['sheet'], question: { message: 'Sheet name:' } },
