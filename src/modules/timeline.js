@@ -93,13 +93,11 @@ class Timeline extends EventEmitter {
 
   /**
    * Initialise the timeline instance.
-   * @param {Array} [events] Events to be added on the timeline.
+   * @param {Array} events Events to be added on the timeline.
    */
   init(events) {
-    // For plugins to register commands
-    this._commands = {};
+    ow(events, ow.array.ofType(ow.object));
 
-    // Initialise the data for the events
     this._timeline = events;
 
     const { byId, byType, byLabel } = this._timeline.reduce(
@@ -124,50 +122,6 @@ class Timeline extends EventEmitter {
   }
 
   /**
-   * Register a command for the timeline.
-   * @param {String}   command       Command to register.
-   * @param {Function} handler       Handler for the command.
-   * @param {String}   documentation Documentation for this command.
-   */
-  registerCommand(command, handler, documentation) {
-    if (this._commands[command]) {
-      throw new Error('Command already registered.');
-    }
-
-    this._commands[command] = { handler, documentation };
-  }
-
-  /**
-   * Check if a command is registered or not.
-   * @param  {String}  command The name of the command to check.
-   * @return {Boolean}         True if registered, otherwise false.
-   */
-  hasCommand(command) {
-    return Boolean(this._commands[command]);
-  }
-
-  /**
-   * Execute a registered command.
-   * @param {String} command Command to execute.
-   */
-  executeCommand(command) {
-    if (!this._commands[command]) {
-      throw new Error('Tried to execute an unregistered command.');
-    }
-
-    this._commands[command].handler(this);
-  }
-
-  /**
-   * Get a registered command's documentation.
-   * @param  {String}      command Command to get the documentation for.
-   * @return {String|null}         The documentation or null.
-   */
-  getDocumentation(command) {
-    return this._commands[command] ? this._commands[command].documentation : null;
-  }
-
-  /**
    * Get events from the list of all events.
    * @param  {Object} [options] Options for filtering events.
    * @return {Array}            An array of matched events.
@@ -177,7 +131,7 @@ class Timeline extends EventEmitter {
   }
 
   /**
-   * Get events by its type.
+   * Get events by their type.
    * @param  {String} type      The type to filter by.
    * @param  {Object} [options] Options for filtering events.
    * @return {Array}            An array of matched events.
@@ -207,8 +161,7 @@ class Timeline extends EventEmitter {
    * @param {Number} to          Ending time for the event.
    * @param {Object} [data]      Data for the event.
    */
-  add(type, labels, description, from, to, data = null) {
-    // Validate parameters
+  add(type, labels, description, from, to, data = {}) {
     ow(type, ow.string.minLength(1));
     ow(labels, ow.array.nonEmpty.ofType(ow.string.minLength(1)));
     ow(description, ow.string.minLength(1));
@@ -251,7 +204,6 @@ class Timeline extends EventEmitter {
     const event = this._eventsById[id];
     const { type, labels } = event;
 
-    // Delete the event from the data structure
     delete this._eventsById[id];
 
     const index = this._timeline.findIndex(e => e.id === id);
@@ -266,48 +218,6 @@ class Timeline extends EventEmitter {
     });
 
     this.emit('event.delete', event);
-  }
-
-  /**
-   * Run MapReduce since a specified timestamp.
-   * @param  {Function} map             Map each entry to a key.
-   * @param  {Function} reduce          Reduce each group to a single object value.
-   * @param  {Object}   [options]       Options.
-   * @param  {Number}   [options.since] Filter entries to only those added after `since`.
-   * @return {Object}                   The MapReduced result.
-   */
-  mapReduce(map, reduce, { since = null } = {}) {
-    // Validate arguments
-    ow(map, ow.function);
-    ow(reduce, ow.function);
-
-    ow(since, ow.any(ow.null, ow.number.greaterThanOrEqual(0)));
-
-    // The result of MapReduce
-    let result = {};
-
-    // Map
-    let i = this._data.entries.length - 1;
-
-    while (i !== -1) {
-      const entry = this._data.entries[i];
-
-      // Stop if "since" restriction not true anymore
-      if (since && entry.timestamp < since) break;
-
-      // Map the entry to a key
-      const key = map(entry);
-      result[key] = [...(result[key] || []), entry];
-
-      i -= 1;
-    }
-
-    // Reduce
-    Object.keys(result).forEach(key => {
-      result[key] = result[key].reduce((temp, entry) => reduce(temp, entry), {});
-    });
-
-    return result;
   }
 }
 
