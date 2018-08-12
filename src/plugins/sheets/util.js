@@ -6,6 +6,16 @@ const querystring = require('querystring');
 const fetch = require('node-fetch');
 
 /**
+ * Convert a serial number date to a Date instance.
+ * @param  {Number} serialNumberDate Date in the serial number format.
+ * @return {Date}                    Date instance.
+ */
+const convertSerialNumberDate = serialNumberDate => {
+  const daysSinceUnix = serialNumberDate - 25569;
+  return new Date(Math.round(daysSinceUnix * 86400 * 1000));
+};
+
+/**
  * Get a spreadsheet.
  * @param  {Object}          credentials   Credentials for Google API.
  * @param  {String}          spreadsheetId Spreadsheet to get.
@@ -38,6 +48,7 @@ const listEvents = async (credentials, spreadsheetId, sheetName) => {
   const query = querystring.stringify({
     majorDimension: 'ROWS',
     valueRenderOption: 'UNFORMATTED_VALUE',
+    dateTimeRenderOption: 'SERIAL_NUMBER',
   });
 
   const headers = {};
@@ -50,17 +61,20 @@ const listEvents = async (credentials, spreadsheetId, sheetName) => {
 
   if (!res.ok) throw data;
 
-  return data.values
-    ? data.values.map(([id, type, labels, from, to, description, data]) => ({
-        id,
-        type,
-        labels: labels.split(',').map(label => label.trim()),
-        from: new Date(from),
-        to: new Date(to),
-        description,
-        data: JSON.parse(data),
-      }))
-    : [];
+  if (!data.values || !data.values.length) return [];
+
+  return data.values.slice(1).map(row => {
+    let [id, type, labels, from, to, description, data] = row;
+
+    labels = labels.split(',').map(l => l.trim());
+
+    from = convertSerialNumberDate(from);
+    to = convertSerialNumberDate(to);
+
+    data = JSON.parse(data);
+
+    return { id, type, labels, from, to, description, data };
+  });
 };
 
 /**
