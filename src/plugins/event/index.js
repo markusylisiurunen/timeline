@@ -46,6 +46,51 @@ let add = async (args, { timeline }) => {
 };
 
 /**
+ * Show a report by type.
+ * @param {Object} args    Parsed arguments.
+ * @param {Object} context Context object.
+ */
+let reportByType = async (args, { timeline }) => {
+  // prettier-ignore
+  const options = await getOptions(args, [
+    { name: 'since', flags: ['since', 's'], question: { message: 'Since:' } },
+    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: formatDate(new Date()) } },
+  ]);
+
+  options.since = Date.parse(options.since);
+  options.until = Date.parse(options.until);
+
+  try {
+    ow(options.since, ow.number.greaterThan(0));
+    ow(options.until, ow.number.greaterThan(0));
+  } catch (error) {
+    console.log('Invalid options.');
+    return;
+  }
+
+  const events = timeline.get({ since: options.since, until: options.until });
+
+  if (!events.length) {
+    console.log('No events found.');
+    return;
+  }
+
+  const types = {};
+
+  events.forEach(event => {
+    const spentTime = event.to - event.from;
+    types[event.type] = (types[event.type] || 0) + spentTime;
+  });
+
+  const head = ['Labels', 'Spent time'];
+  const rows = Object.keys(types)
+    .sort()
+    .map(type => [type, prettyMs(types[type])]);
+
+  console.log(constructTable(head, rows));
+};
+
+/**
  * Show a report by labels.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
@@ -103,5 +148,6 @@ module.exports = (args, context) => {
   reportByLabel = reportByLabel.bind(null, args, context);
 
   commands.register('event.add', add, docs.add);
+  commands.register('event.report.type', reportByType, docs.reportByType);
   commands.register('event.report.label', reportByLabel, docs.reportByLabel);
 };

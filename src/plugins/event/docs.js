@@ -17,6 +17,15 @@ module.exports = {
     ]),
   ]),
 
+  reportByType: docs.wrap([
+    docs.block.text('Usage: timeline event report type [options]'),
+    docs.block.text('Show a report by type.'),
+    docs.block.list('Options', [
+      ['[--since, -s]', 'Include events since'],
+      ['[--until, -u]', 'Include events until'],
+    ]),
+  ]),
+
   reportByLabel: docs.wrap([
     docs.block.text('Usage: timeline event report label [options]'),
     docs.block.text('Show a report by labels.'),
