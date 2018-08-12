@@ -3,9 +3,10 @@
  */
 
 const ow = require('ow');
+const utilOptions = require('../../util/options');
+const utilPlugin = require('./util');
+
 const docs = require('./docs');
-const { getOptions } = require('../../util/options');
-const { listEvents, insertEvent } = require('./util');
 
 /**
  * Initialise the Google Calendar plugin.
@@ -13,7 +14,7 @@ const { listEvents, insertEvent } = require('./util');
  * @param {Object} context Context object.
  */
 let init = async (args, { configstore }) => {
-  const options = await getOptions(args, [
+  const options = await utilOptions.getOptions(args, [
     { name: 'id', flags: ['id'], question: { message: 'Calendar id:' } },
   ]);
 
@@ -46,7 +47,7 @@ let sync = async (args, { configstore, timeline }) => {
   let events = null;
 
   try {
-    events = await listEvents(credentials, id);
+    events = await utilPlugin.listEvents(credentials, id);
   } catch (error) {
     console.log('An error occured.');
     return;
@@ -58,7 +59,7 @@ let sync = async (args, { configstore, timeline }) => {
     await Promise.all(
       timeline.get().map(async event => {
         if (eventsInCalendar.has(event.id)) return;
-        await insertEvent(credentials, id, event);
+        await utilPlugin.insertEvent(credentials, id, event);
       })
     );
   } catch (error) {
@@ -95,7 +96,7 @@ let onEventAdd = async (args, { configstore }, event) => {
   }
 
   try {
-    await insertEvent(credentials, id, event);
+    await utilPlugin.insertEvent(credentials, id, event);
   } catch (error) {
     console.log('ERROR (calendar): Failed to add the event.');
   }

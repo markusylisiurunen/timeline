@@ -3,9 +3,10 @@
  */
 
 const ow = require('ow');
+const utilOptions = require('../../util/options');
+const utilPlugin = require('./util');
+
 const docs = require('./docs');
-const { getSpreadsheet, listEvents, insertEvent } = require('./util');
-const { getOptions } = require('../../util/options');
 
 /**
  * Initialise the Google Sheets plugin.
@@ -20,7 +21,7 @@ let init = async (args, { configstore }) => {
     return;
   }
 
-  const options = await getOptions(args, [
+  const options = await utilOptions.getOptions(args, [
     { name: 'id', flags: ['id'], question: { message: 'Spreadsheet id:' } },
     { name: 'sheet', flags: ['sheet'], question: { message: 'Sheet name:' } },
   ]);
@@ -36,7 +37,7 @@ let init = async (args, { configstore }) => {
   let sheet = null;
 
   try {
-    sheet = await getSpreadsheet(credentials, options.id);
+    sheet = await utilPlugin.getSpreadsheet(credentials, options.id);
   } catch (error) {
     console.log('Failed to initialise.');
     return;
@@ -76,7 +77,7 @@ let loadEvents = async (args, { configstore, timeline }) => {
   let events = null;
 
   try {
-    events = await listEvents(credentials, id, sheet);
+    events = await utilPlugin.listEvents(credentials, id, sheet);
   } catch (error) {
     console.log('ERROR (sheets): Failed to load the events.');
     return;
@@ -101,7 +102,7 @@ let onEventAdd = async (args, { configstore }, event) => {
   }
 
   try {
-    await insertEvent(credentials, locale, id, sheet, event);
+    await utilPlugin.insertEvent(credentials, locale, id, sheet, event);
   } catch (error) {
     console.log('ERROR (sheets): Failed to save the event.');
   }

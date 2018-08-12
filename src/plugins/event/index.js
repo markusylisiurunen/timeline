@@ -3,12 +3,13 @@
  */
 
 const ow = require('ow');
-const prettyMs = require('pretty-ms');
-const { power: powerSet } = require('js-combinatorics');
+const combinatorics = require('js-combinatorics');
+const formatDuration = require('pretty-ms');
+const utilOptions = require('../../util/options');
+const utilDate = require('../../util/date');
+const utilTable = require('../../util/table');
+
 const docs = require('./docs');
-const { getOptions } = require('../../util/options');
-const { formatDate } = require('../../util/date');
-const { constructTable } = require('../../util/table');
 
 /**
  * Add a new event to the timeline.
@@ -16,7 +17,7 @@ const { constructTable } = require('../../util/table');
  * @param {Object} context Context object.
  */
 let add = async (args, { timeline }) => {
-  const options = await getOptions(args, [
+  const options = await utilOptions.getOptions(args, [
     { name: 'labels', flags: ['label', 'l'], question: { message: 'Labels:' } },
     { name: 'description', flags: ['description', 'd'], question: { message: 'Description:' } },
     { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
@@ -52,9 +53,9 @@ let add = async (args, { timeline }) => {
  */
 let reportByType = async (args, { timeline }) => {
   // prettier-ignore
-  const options = await getOptions(args, [
+  const options = await utilOptions.getOptions(args, [
     { name: 'since', flags: ['since', 's'], question: { message: 'Since:' } },
-    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: formatDate(new Date()) } },
+    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: utilDate.formatDateTime(new Date()) } },
   ]);
 
   options.since = Date.parse(options.since);
@@ -85,9 +86,9 @@ let reportByType = async (args, { timeline }) => {
   const head = ['Labels', 'Spent time'];
   const rows = Object.keys(types)
     .sort()
-    .map(type => [type, prettyMs(types[type])]);
+    .map(type => [type, formatDuration(types[type])]);
 
-  console.log(constructTable(head, rows));
+  console.log(utilTable.constructTable(head, rows));
 };
 
 /**
@@ -97,9 +98,9 @@ let reportByType = async (args, { timeline }) => {
  */
 let reportByLabel = async (args, { timeline }) => {
   // prettier-ignore
-  const options = await getOptions(args, [
+  const options = await utilOptions.getOptions(args, [
     { name: 'since', flags: ['since', 's'], question: { message: 'Since:' } },
-    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: formatDate(new Date()) } },
+    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: utilDate.formatDate(new Date()) } },
   ]);
 
   options.since = Date.parse(options.since);
@@ -123,7 +124,8 @@ let reportByLabel = async (args, { timeline }) => {
   const labelGroups = {};
 
   events.forEach(event => {
-    powerSet(event.labels)
+    combinatorics
+      .power(event.labels)
       .filter(labelGroup => labelGroup.length > 0)
       .forEach(labelGroup => {
         const key = labelGroup.sort().join(', ');
@@ -136,9 +138,9 @@ let reportByLabel = async (args, { timeline }) => {
   const head = ['Labels', 'Spent time'];
   const rows = Object.keys(labelGroups)
     .sort()
-    .map(labelGroup => [labelGroup, prettyMs(labelGroups[labelGroup])]);
+    .map(labelGroup => [labelGroup, formatDuration(labelGroups[labelGroup])]);
 
-  console.log(constructTable(head, rows));
+  console.log(utilTable.constructTable(head, rows));
 };
 
 module.exports = (args, context) => {
