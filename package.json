@@ -35,6 +35,7 @@
     "@markusylisiurunen/md-table": "^0.2.1-alpha",
     "configstore": "^4.0.0",
     "inquirer": "^6.1.0",
+    "js-combinatorics": "^0.5.3",
     "minimist": "^1.2.0",
     "node-fetch": "^2.2.0",
     "ow": "^0.6.0",
