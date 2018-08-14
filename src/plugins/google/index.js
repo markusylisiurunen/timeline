@@ -2,8 +2,10 @@
  * @overview Plugin to integrate with Google services.
  */
 
+const chalk = require('chalk');
 const config = require('../../config');
-const utilPlugin = require('./util');
+const ui = require('../../util/ui');
+const util = require('./util');
 
 const docs = require('./docs');
 
@@ -20,7 +22,7 @@ let refreshToken = async (args, { configstore }) => {
   let tokens = null;
 
   try {
-    tokens = await utilPlugin.refreshAccessToken(
+    tokens = await util.refreshAccessToken(
       config.google.clientId,
       config.google.clientSecret,
       credentials.refreshToken
@@ -44,56 +46,95 @@ let refreshToken = async (args, { configstore }) => {
  * @param {Object} context Context object.
  */
 let authorize = async (args, { configstore }) => {
-  const codes = await utilPlugin.getCodes(config.google.clientId);
+  const googleConfig = configstore.get('google');
 
-  console.log(`Open you browser at ${codes.verification_url} and enter the following code.`);
-  console.log(`Code: ${codes.user_code}`);
+  // Revoke previous credentials if already init has been ran
+  if (googleConfig) {
+    await util.revokeTokens(googleConfig.credentials.accessToken);
+  }
 
-  const checkPermissions = async () => {
-    let res = null;
+  // Request user to grant permissions
+  const codes = await util.getCodes(config.google.clientId);
 
-    try {
-      res = await utilPlugin.poll(
-        config.google.clientId,
-        config.google.clientSecret,
-        codes.device_code
-      );
-    } catch (data) {
-      if (data.error === 'authorization_pending') return res;
+  // prettier-ignore
+  ui.say(chalk`Open {bold ${codes.verification_url}} and enter {bold ${codes.user_code}}. Waiting...`);
 
-      if (data.error === 'access_denied') {
-        throw new Error('You refused to grant permissions.');
-      }
+  let credentials = null;
 
-      throw new Error(data.error_description);
-    }
+  try {
+    credentials = await util.waitForGrantedPermissions(codes);
+  } catch (error) {
+    ui.error('Permissions not granted.');
+    return;
+  }
 
-    return res;
-  };
+  // Ask the user to pick a spreadsheet and a calendar
+  const sheets = await util.listSheets(credentials);
+  const calendars = await util.listCalendars(credentials);
 
-  let interval = setInterval(async () => {
-    let tokens = null;
+  const { sheet, calendar } = await ui.ask([
+    {
+      type: 'list',
+      name: 'sheet',
+      message: 'Which spreadsheet to use?',
+      choices: sheets.map(sheet => ({ name: sheet.name, value: sheet.id })),
+    },
+    {
+      type: 'list',
+      name: 'calendar',
+      message: 'Which calendar to use?',
+      choices: calendars.map(calendar => ({ name: calendar.summary, value: calendar.id })),
+    },
+  ]);
 
-    try {
-      tokens = await checkPermissions();
-    } catch (error) {
-      console.log(error.message);
-      clearInterval(interval);
-    }
+  // TODO: Do the answers need to be validated?
 
-    if (!tokens || !tokens.access_token) return;
+  // const codes =
 
-    clearInterval(interval);
+  // // prettier-ignore
+  // return;
 
-    configstore.set('google.credentials', {
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      tokenType: tokens.token_type,
-      expiresAt: Date.now() + tokens.expires_in * 1000,
-    });
+  // const checkPermissions = async () => {
+  //   let res = null;
 
-    console.log('Done.');
-  }, codes.interval * 1000);
+  //   try {
+  //     res = await util.poll(config.google.clientId, config.google.clientSecret, codes.device_code);
+  //   } catch (data) {
+  //     if (data.error === 'authorization_pending') return res;
+
+  //     if (data.error === 'access_denied') {
+  //       throw new Error('You refused to grant permissions.');
+  //     }
+
+  //     throw new Error(data.error_description);
+  //   }
+
+  //   return res;
+  // };
+
+  // let interval = setInterval(async () => {
+  //   let tokens = null;
+
+  //   try {
+  //     tokens = await checkPermissions();
+  //   } catch (error) {
+  //     console.log(error.message);
+  //     clearInterval(interval);
+  //   }
+
+  //   if (!tokens || !tokens.access_token) return;
+
+  //   clearInterval(interval);
+
+  //   configstore.set('google.credentials', {
+  //     accessToken: tokens.access_token,
+  //     refreshToken: tokens.refresh_token,
+  //     tokenType: tokens.token_type,
+  //     expiresAt: Date.now() + tokens.expires_in * 1000,
+  //   });
+
+  //   console.log('Done.');
+  // }, codes.interval * 1000);
 };
 
 /**
@@ -107,7 +148,7 @@ let revoke = async (args, { configstore }) => {
   configstore.delete('google.credentials');
 
   if (credentials) {
-    await utilPlugin.revokeTokens(credentials.accessToken);
+    await util.revokeTokens(credentials.accessToken);
   }
 
   console.log('Google plugin has been reset.');
