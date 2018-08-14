@@ -41,100 +41,98 @@ let refreshToken = async (args, { configstore }) => {
 };
 
 /**
- * Authorize the user with Google Calendar and Sheets.
+ * Initialise the Google plugin.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-let authorize = async (args, { configstore }) => {
+let init = async (args, { configstore }) => {
   const googleConfig = configstore.get('google');
 
-  // Revoke previous credentials if already init has been ran
+  // Revoke previous credentials if `init` has already been ran
   if (googleConfig) {
-    await util.revokeTokens(googleConfig.credentials.accessToken);
+    try {
+      await util.revokeTokens(
+        config.google.clientId,
+        config.google.clientSecret,
+        googleConfig.credentials.refreshToken
+      );
+    } catch (e) {
+      ui.error('Failed to revoke tokens.');
+    }
+
+    configstore.delete('google');
   }
 
   // Request user to grant permissions
-  const codes = await util.getCodes(config.google.clientId);
+  let codes = null;
+
+  try {
+    codes = await util.getCodes(config.google.clientId);
+  } catch (error) {
+    ui.error('Failed to acquire device and user codes.');
+    return;
+  }
 
   // prettier-ignore
-  ui.say(chalk`Open {bold ${codes.verification_url}} and enter {bold ${codes.user_code}}. Waiting...`);
+  ui.say(chalk`Open {bold ${codes.verification_url}} and enter: {bold ${codes.user_code}}`);
 
   let credentials = null;
 
   try {
-    credentials = await util.waitForGrantedPermissions(codes);
+    credentials = await util.waitForGrantedPermissions(
+      config.google.clientId,
+      config.google.clientSecret,
+      codes
+    );
   } catch (error) {
     ui.error('Permissions not granted.');
     return;
   }
 
-  // Ask the user to pick a spreadsheet and a calendar
-  const sheets = await util.listSheets(credentials);
-  const calendars = await util.listCalendars(credentials);
+  // Ask the user to pick a spreadsheet, a sheet and a calendar
+  const { spreadsheet } = await ui.ask({
+    name: 'spreadsheet',
+    message: 'Which spreadsheet to use?',
+  });
 
-  const { sheet, calendar } = await ui.ask([
-    {
-      type: 'list',
-      name: 'sheet',
-      message: 'Which spreadsheet to use?',
-      choices: sheets.map(sheet => ({ name: sheet.name, value: sheet.id })),
-    },
-    {
-      type: 'list',
-      name: 'calendar',
-      message: 'Which calendar to use?',
-      choices: calendars.map(calendar => ({ name: calendar.summary, value: calendar.id })),
-    },
-  ]);
+  let sheets = null;
 
-  // TODO: Do the answers need to be validated?
+  try {
+    sheets = await util.listSheets(credentials, spreadsheet);
+  } catch (error) {
+    ui.error('Failed to fetch sheets.');
+    return;
+  }
 
-  // const codes =
+  const { sheet } = await ui.ask({
+    type: 'list',
+    name: 'sheet',
+    message: 'Which sheet to use?',
+    choices: sheets.map(({ properties }) => ({
+      name: properties.title,
+      value: properties.sheetId,
+    })),
+  });
 
-  // // prettier-ignore
-  // return;
+  let calendars = null;
 
-  // const checkPermissions = async () => {
-  //   let res = null;
+  try {
+    calendars = await util.listCalendars(credentials);
+  } catch (error) {
+    ui.error('Failed to fetch calendars.');
+    return;
+  }
 
-  //   try {
-  //     res = await util.poll(config.google.clientId, config.google.clientSecret, codes.device_code);
-  //   } catch (data) {
-  //     if (data.error === 'authorization_pending') return res;
+  const { calendar } = await ui.ask({
+    type: 'list',
+    name: 'calendar',
+    message: 'Which calendar to use?',
+    choices: calendars.map(calendar => ({ name: calendar.summary, value: calendar.id })),
+  });
 
-  //     if (data.error === 'access_denied') {
-  //       throw new Error('You refused to grant permissions.');
-  //     }
+  // TODO: Validate the answers
 
-  //     throw new Error(data.error_description);
-  //   }
-
-  //   return res;
-  // };
-
-  // let interval = setInterval(async () => {
-  //   let tokens = null;
-
-  //   try {
-  //     tokens = await checkPermissions();
-  //   } catch (error) {
-  //     console.log(error.message);
-  //     clearInterval(interval);
-  //   }
-
-  //   if (!tokens || !tokens.access_token) return;
-
-  //   clearInterval(interval);
-
-  //   configstore.set('google.credentials', {
-  //     accessToken: tokens.access_token,
-  //     refreshToken: tokens.refresh_token,
-  //     tokenType: tokens.token_type,
-  //     expiresAt: Date.now() + tokens.expires_in * 1000,
-  //   });
-
-  //   console.log('Done.');
-  // }, codes.interval * 1000);
+  configstore.set('google', { credentials, spreadsheet, sheet, calendar });
 };
 
 /**
@@ -158,13 +156,13 @@ module.exports = (args, context) => {
   const { lifecycle, commands } = context;
 
   refreshToken = refreshToken.bind(null, args, context);
-  authorize = authorize.bind(null, args, context);
+  init = init.bind(null, args, context);
   revoke = revoke.bind(null, args, context);
 
   // Refresh the access token on init if necessary
   lifecycle.on('init', refreshToken);
 
   // Register commands for this plugin
-  commands.register('google.authorize', authorize, docs.authorize);
+  commands.register('google.init', init, docs.init);
   commands.register('google.revoke', revoke, docs.revoke);
 };
