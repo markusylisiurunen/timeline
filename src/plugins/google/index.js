@@ -133,23 +133,28 @@ let init = async (args, { configstore }) => {
   // TODO: Validate the answers
 
   configstore.set('google', { credentials, spreadsheet, sheet, calendar });
+  ui.say('Google services have been set up.');
 };
 
 /**
- * Revoke previously granted permissions.
+ * Reset the Google plugin.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-let revoke = async (args, { configstore }) => {
-  const credentials = configstore.get('google.credentials');
+let reset = async (args, { configstore }) => {
+  const googleConfig = configstore.get('google');
 
-  configstore.delete('google.credentials');
+  if (googleConfig) {
+    configstore.delete('google');
 
-  if (credentials) {
-    await util.revokeTokens(credentials.accessToken);
+    try {
+      await util.revokeTokens(googleConfig.credentials.refreshToken);
+    } catch (e) {
+      ui.error('Failed to revoke tokens.');
+    }
   }
 
-  console.log('Google plugin has been reset.');
+  ui.say('Google plugin has been reset.');
 };
 
 module.exports = (args, context) => {
@@ -157,12 +162,12 @@ module.exports = (args, context) => {
 
   refreshToken = refreshToken.bind(null, args, context);
   init = init.bind(null, args, context);
-  revoke = revoke.bind(null, args, context);
+  reset = reset.bind(null, args, context);
 
   // Refresh the access token on init if necessary
   lifecycle.on('init', refreshToken);
 
   // Register commands for this plugin
   commands.register('google.init', init, docs.init);
-  commands.register('google.revoke', revoke, docs.revoke);
+  commands.register('google.reset', reset, docs.reset);
 };
