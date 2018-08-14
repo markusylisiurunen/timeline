@@ -3,13 +3,14 @@
  */
 
 const ow = require('ow');
-const prettyMs = require('pretty-ms');
 const log = require('single-line-log').stdout;
+const formatDuration = require('pretty-ms');
+const utilOptions = require('../../util/options');
+const utilDate = require('../../util/date');
+const utilTable = require('../../util/table');
+const utilPlugin = require('./util');
+
 const docs = require('./docs');
-const { getOptions } = require('../../util/options');
-const { constructTable } = require('../../util/table');
-const { formatDate } = require('../../util/date');
-const { hourlySalary } = require('./util');
 
 /**
  * Add a new work entry to the timeline.
@@ -17,7 +18,7 @@ const { hourlySalary } = require('./util');
  * @param {Object} context Context object.
  */
 let add = async (args, { timeline }) => {
-  const options = await getOptions(args, [
+  const options = await utilOptions.getOptions(args, [
     { name: 'labels', flags: ['label', 'l'], question: { message: 'Labels:' } },
     { name: 'salary', flags: ['salary', 's'], question: { message: 'Salary:' } },
     { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
@@ -42,9 +43,12 @@ let add = async (args, { timeline }) => {
   }
 
   const hours = (options.to - options.from) / 3.6e6;
-  const prettyHours = prettyMs(options.to - options.from, { secDecimalDigits: 0, verbose: true });
+  const prettyHours = formatDuration(options.to - options.from, {
+    secDecimalDigits: 0,
+    verbose: true,
+  });
 
-  const salaryPerHour = hourlySalary(options.salary);
+  const salaryPerHour = utilPlugin.hourlySalary(options.salary);
   const earnings = hours * salaryPerHour;
 
   const description = `Worked for ${prettyHours} and earned ${earnings.toFixed(2)} €.`;
@@ -66,9 +70,9 @@ let live = async (args, { timeline }) => {
   defaultSince.setMinutes(0);
 
   // prettier-ignore
-  const options = await getOptions(args, [
+  const options = await utilOptions.getOptions(args, [
     { name: 'salary', flags: ['salary', 's'], question: { message: 'Salary:' } },
-    { name: 'since', flags: ['since', 'S'], question: { message: 'Since:', default: formatDate(defaultSince) } },
+    { name: 'since', flags: ['since', 'S'], question: { message: 'Since:', default: utilDate.formatDateTime(defaultSince) } },
     { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
   ]);
 
@@ -84,7 +88,7 @@ let live = async (args, { timeline }) => {
     return;
   }
 
-  const salaryPerHour = hourlySalary(options.salary);
+  const salaryPerHour = utilPlugin.hourlySalary(options.salary);
 
   const events = timeline.getByType('work', { since: options.since });
 
@@ -95,7 +99,7 @@ let live = async (args, { timeline }) => {
     let totalDuration = events.reduce((total, { from, to }) => total + (to - from), duration);
     let totalEarnings = events.reduce((total, { data }) => total + data.earnings, earnings);
 
-    totalDuration = prettyMs(totalDuration, { secDecimalDigits: 0 });
+    totalDuration = formatDuration(totalDuration, { secDecimalDigits: 0 });
     totalEarnings = `${totalEarnings.toFixed(2)} €`;
 
     const headers = ['Labels', 'Duration', 'Earnings'];
@@ -104,11 +108,11 @@ let live = async (args, { timeline }) => {
       { labels: ['-'], from: options.from, to: Date.now(), data: { earnings } },
     ].map(event => [
       event.labels.join(', '),
-      prettyMs(event.to - event.from, { secDecimalDigits: 0 }),
+      formatDuration(event.to - event.from, { secDecimalDigits: 0 }),
       `${event.data.earnings.toFixed(2)} €`,
     ]);
 
-    const table = constructTable(headers, rows, { alignRight: [2] });
+    const table = utilTable.constructTable(headers, rows, { alignRight: [2] });
     const summary = `   Worked for ${totalDuration} and earned ${totalEarnings}.`;
 
     log(`${table}${summary}\n`);
@@ -127,9 +131,9 @@ let report = async (args, { timeline }) => {
   defaultSince.setMinutes(0);
 
   // prettier-ignore
-  const options = await getOptions(args, [
-    { name: 'since', flags: ['since', 's'], question: { message: 'Since:', default: formatDate(defaultSince) } },
-    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: formatDate(new Date()) } },
+  const options = await utilOptions.getOptions(args, [
+    { name: 'since', flags: ['since', 's'], question: { message: 'Since:', default: utilDate.formatDateTime(defaultSince) } },
+    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: utilDate.formatDateTime(new Date()) } },
   ]);
 
   try {
@@ -155,12 +159,12 @@ let report = async (args, { timeline }) => {
     `${event.data.earnings.toFixed(2)} €`,
   ]);
 
-  const table = constructTable(head, rows, { alignRight: [3] });
+  const table = utilTable.constructTable(head, rows, { alignRight: [3] });
 
   const duration = events.reduce((total, { to, from }) => total + (to - from), 0);
   const earnings = events.reduce((total, event) => total + event.data.earnings, 0);
 
-  const summary = `   Worked for ${prettyMs(duration)} and earned ${earnings.toFixed(2)} €.`;
+  const summary = `   Worked for ${formatDuration(duration)} and earned ${earnings.toFixed(2)} €.`;
 
   console.log(`${table}${summary}\n`);
 };

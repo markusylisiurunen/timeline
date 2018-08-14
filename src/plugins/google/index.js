@@ -2,9 +2,10 @@
  * @overview Plugin to integrate with Google services.
  */
 
-const docs = require('./docs');
 const config = require('../../config');
-const { getCodes, poll, revokeTokens, refreshAccessToken } = require('./util');
+const utilPlugin = require('./util');
+
+const docs = require('./docs');
 
 /**
  * Refresh the user's access token if it has expired.
@@ -19,7 +20,7 @@ let refreshToken = async (args, { configstore }) => {
   let tokens = null;
 
   try {
-    tokens = await refreshAccessToken(
+    tokens = await utilPlugin.refreshAccessToken(
       config.google.clientId,
       config.google.clientSecret,
       credentials.refreshToken
@@ -43,7 +44,7 @@ let refreshToken = async (args, { configstore }) => {
  * @param {Object} context Context object.
  */
 let authorize = async (args, { configstore }) => {
-  const codes = await getCodes(config.google.clientId);
+  const codes = await utilPlugin.getCodes(config.google.clientId);
 
   console.log(`Open you browser at ${codes.verification_url} and enter the following code.`);
   console.log(`Code: ${codes.user_code}`);
@@ -52,7 +53,11 @@ let authorize = async (args, { configstore }) => {
     let res = null;
 
     try {
-      res = await poll(config.google.clientId, config.google.clientSecret, codes.device_code);
+      res = await utilPlugin.poll(
+        config.google.clientId,
+        config.google.clientSecret,
+        codes.device_code
+      );
     } catch (data) {
       if (data.error === 'authorization_pending') return res;
 
@@ -102,7 +107,7 @@ let revoke = async (args, { configstore }) => {
   configstore.delete('google.credentials');
 
   if (credentials) {
-    await revokeTokens(credentials.accessToken);
+    await utilPlugin.revokeTokens(credentials.accessToken);
   }
 
   console.log('Google plugin has been reset.');
