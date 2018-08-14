@@ -28,7 +28,9 @@ let refreshToken = async (args, { configstore }) => {
       credentials.refreshToken
     );
   } catch (error) {
-    configstore.delete('google.credentials');
+    configstore.delete('google');
+    ui.error('Failed to refresh Google API tokens.');
+
     return;
   }
 
