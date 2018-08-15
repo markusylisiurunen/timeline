@@ -70,8 +70,8 @@ const waitForGrantedPermissions = async ({
  * @param  {String}          _.refreshToken Refresh token.
  * @return {Promise<Object>}                Response data.
  */
-const refreshAccessToken = async ({ clientId, clientSecret, refreshToken } = {}) =>
-  api.fetch({
+const refreshAccessToken = async ({ clientId, clientSecret, refreshToken } = {}) => {
+  const tokens = await api.fetch({
     verb: 'POST',
     url: 'https://www.googleapis.com/oauth2/v4/token',
     query: {
@@ -81,6 +81,13 @@ const refreshAccessToken = async ({ clientId, clientSecret, refreshToken } = {})
       grant_type: 'refresh_token',
     },
   });
+
+  return {
+    accessToken: tokens.access_token,
+    tokenType: tokens.token_type,
+    expiresAt: Date.now() + tokens.expires_in * 1000,
+  };
+};
 
 /**
  * Revoke granted access.
