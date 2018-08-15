@@ -39,6 +39,23 @@ const refreshAccessToken = async ({ configstore }) => {
   }
 };
 
+/**
+ * Load events from Google Sheets.
+ * @param {Object} context Context object.
+ */
+const loadEvents = async ({ configstore, timeline }) => {
+  const { credentials, spreadsheet, sheet } = configstore.get('google') || {};
+
+  if (!(credentials && spreadsheet && sheet)) return;
+
+  try {
+    const events = await googleSheets.getEvents({ credentials, spreadsheet, sheet });
+    timeline.init(events);
+  } catch (error) {
+    ui.error('Failed to load events from Google Sheets.');
+  }
+};
+
 // Timeline hooks
 
 /**
@@ -193,6 +210,7 @@ module.exports = (args, context) => {
   const { lifecycle, commands, timeline } = context;
 
   lifecycle.on('init', refreshAccessToken.bind(null, context));
+  lifecycle.on('preCommand', loadEvents.bind(null, context));
 
   timeline.on('event.add', onEventAdd.bind(null, context));
 
