@@ -185,6 +185,46 @@ const init = async ({ configstore }) => {
 };
 
 /**
+ * Sync Google Calendar with Google Sheets.
+ * @param {Object} context Context object.
+ */
+const sync = async ({ configstore, timeline }) => {
+  const { credentials, calendar } = configstore.get('google') || {};
+
+  if (!(credentials && calendar)) {
+    ui.error('Google plugin has not been initialised.');
+    return;
+  }
+
+  let events = null;
+
+  try {
+    events = await googleCalendar.getEvents({ credentials, calendar });
+  } catch (error) {
+    ui.error('Failed to get the events in Google Calendar.');
+    return;
+  }
+
+  // TODO: Remove deprecated events from the calendar
+
+  const eventsInCalendar = new Set(events.map(event => event.meta.id));
+
+  try {
+    await Promise.all(
+      timeline.get().map(async event => {
+        if (eventsInCalendar.has(event.id)) return;
+        await googleCalendar.addEvent({ credentials, calendar, event });
+      })
+    );
+  } catch (error) {
+    ui.error('Failed to sync your calendar.');
+    return;
+  }
+
+  ui.say('Calendar has been synced.');
+};
+
+/**
  * Reset the Google plugin.
  * @param {Object} context Context object.
  */
@@ -215,5 +255,6 @@ module.exports = (args, context) => {
   timeline.on('event.add', onEventAdd.bind(null, context));
 
   commands.register('google.init', init.bind(null, context), docs.init);
+  commands.register('google.sync', sync.bind(null, context), docs.sync);
   commands.register('google.reset', reset.bind(null, context), docs.reset);
 };

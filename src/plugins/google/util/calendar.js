@@ -64,8 +64,9 @@ const getEvents = async ({ credentials, calendar } = {}) => {
 
   events = events.items && events.items.length ? events.items : [];
 
-  return events.map(event =>
-    event.description
+  return events.map(event => ({
+    eventId: event.eventId,
+    meta: event.description
       .match(/\((.*)\)/)[1]
       .split(',')
       .map(piece => piece.trim())
@@ -75,8 +76,8 @@ const getEvents = async ({ credentials, calendar } = {}) => {
           [part.split('=')[0]]: part.split('=')[1].split('"')[1],
         }),
         {}
-      )
-  );
+      ),
+  }));
 };
 
 /**
