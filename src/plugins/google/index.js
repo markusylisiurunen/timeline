@@ -44,9 +44,11 @@ const refreshAccessToken = async ({ configstore }) => {
  * @param {Object} context Context object.
  */
 const loadEvents = async ({ configstore, timeline }) => {
-  const { credentials, spreadsheet, sheet } = configstore.get('google') || {};
+  const googleConfig = configstore.get('google');
 
-  if (!(credentials && spreadsheet && sheet)) return;
+  if (!googleConfig) return;
+
+  const { credentials, spreadsheet, sheet } = googleConfig;
 
   try {
     const events = await googleSheets.getEvents({ credentials, spreadsheet, sheet });
@@ -64,12 +66,11 @@ const loadEvents = async ({ configstore, timeline }) => {
  * @param {Object} event   Event to add.
  */
 const onEventAdd = async ({ configstore }, event) => {
-  const { credentials, spreadsheet, sheet, calendar } = configstore.get('google') || {};
+  const googleConfig = configstore.get('google');
 
-  if (!(credentials && spreadsheet && sheet && calendar)) {
-    ui.error('Failed to add event to Google services.');
-    return;
-  }
+  if (!googleConfig) return;
+
+  const { credentials, spreadsheet, sheet, calendar } = googleConfig;
 
   try {
     await Promise.all([
@@ -189,12 +190,14 @@ const init = async ({ configstore }) => {
  * @param {Object} context Context object.
  */
 const sync = async ({ configstore, timeline }) => {
-  const { credentials, calendar } = configstore.get('google') || {};
+  const googleConfig = configstore.get('google');
 
-  if (!(credentials && calendar)) {
+  if (!googleConfig) {
     ui.error('Google plugin has not been initialised.');
     return;
   }
+
+  const { credentials, calendar } = googleConfig;
 
   let events = null;
 
