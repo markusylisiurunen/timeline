@@ -44,6 +44,23 @@ const getSheets = async ({ credentials, spreadsheet } = {}) =>
   })).sheets;
 
 /**
+ * Get spreadsheet's sheet's name.
+ * @param  {Object}          _             Parameters.
+ * @param  {Object}          _.credentials Credentials.
+ * @param  {String}          _.spreadsheet Spreadsheet's id.
+ * @param  {String}          _.sheet       Sheet's id.
+ * @return {Promise<String>}               Name of the sheet.
+ */
+const getSheetName = async ({ credentials, spreadsheet, sheet }) => {
+  const sheets = await getSheets({ credentials, spreadsheet });
+  const sheetIndex = sheets.findIndex(({ properties }) => properties.sheetId === sheet);
+
+  if (sheetIndex === -1) return null;
+
+  return sheets[sheetIndex].properties.title;
+};
+
+/**
  * Get events from a spreadsheet.
  * @param  {Object}         _             Parameters.
  * @param  {Object}         _.credentials Credentials.
@@ -52,8 +69,9 @@ const getSheets = async ({ credentials, spreadsheet } = {}) =>
  * @return {Promise<Array>}               Events.
  */
 const getEvents = async ({ credentials, spreadsheet, sheet } = {}) => {
+  const sheetName = await getSheetName({ credentials, spreadsheet, sheet });
   let events = await api.fetch({
-    url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheet}/values/${sheet}`,
+    url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheet}/values/${sheetName}`,
     query: {
       majorDimension: 'ROWS',
       valueRenderOption: 'UNFORMATTED_VALUE',
@@ -91,14 +109,15 @@ const getEvents = async ({ credentials, spreadsheet, sheet } = {}) => {
  * @param  {Object}  _.event       Event to insert.
  * @return {Promise}               Resolves if added.
  */
-const addEvent = async ({ credentials, locale, spreadsheet, sheet, event } = {}) =>
-  api.fetch({
+const addEvent = async ({ credentials, locale, spreadsheet, sheet, event } = {}) => {
+  const sheetName = await getSheetName({ credentials, spreadsheet, sheet });
+  return api.fetch({
     verb: 'POST',
-    url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheet}/values/${sheet}:append`,
+    url: `https://sheets.googleapis.com/v4/spreadsheets/${spreadsheet}/values/${sheetName}:append`,
     query: { valueInputOption: 'USER_ENTERED' },
     headers: { ...api.authorizationHeader({ credentials }) },
-    body: {
-      range: sheet,
+    data: {
+      range: sheetName,
       majorDimension: 'ROWS',
       values: [
         [
@@ -113,5 +132,6 @@ const addEvent = async ({ credentials, locale, spreadsheet, sheet, event } = {})
       ],
     },
   });
+};
 
-module.exports = { getSpreadsheet, getSheets, getEvents, addEvent };
+module.exports = { getSpreadsheet, getSheets, getSheetName, getEvents, addEvent };
