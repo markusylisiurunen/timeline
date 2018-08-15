@@ -6,6 +6,16 @@ const querystring = require('querystring');
 const nodeFetch = require('node-fetch');
 
 /**
+ * Create authorization header.
+ * @param  {Object} _             Parameters.
+ * @param  {Object} _.credentials Credentials.
+ * @return {Object}               Authorization headers.
+ */
+const authorizationHeader = ({ credentials }) => ({
+  Authorization: `${credentials.tokenType} ${credentials.accessToken}`,
+});
+
+/**
  * Make a Google API request.
  * @param  {Object}          _           Parameters.
  * @param  {String}          _.url       Url to send the request to.
@@ -39,4 +49,4 @@ const fetch = async ({ verb = 'GET', url, query, headers, data } = {}) => {
   return res;
 };
 
-module.exports = { fetch };
+module.exports = { authorizationHeader, fetch };
