@@ -199,26 +199,32 @@ const sync = async ({ configstore, timeline }) => {
 
   const { credentials, calendar } = googleConfig;
 
-  let events = null;
+  let calendarEvents = null;
 
   try {
-    events = await googleCalendar.getEvents({ credentials, calendar });
+    calendarEvents = await googleCalendar.getEvents({ credentials, calendar });
   } catch (error) {
-    ui.error('Failed to get the events in Google Calendar.');
+    ui.error('Failed to load events from Google Calendar.');
     return;
   }
 
-  // TODO: Remove deprecated events from the calendar
+  // Create the sets to insert and remove
+  const eventsInTimeline = new Set(timeline.get().map(event => event.id));
+  const eventsInCalendar = new Set(calendarEvents.map(event => event.meta.id));
 
-  const eventsInCalendar = new Set(events.map(event => event.meta.id));
+  const eventsToInsert = new Set([...eventsInTimeline].filter(e => !eventsInCalendar.has(e)));
+  const eventsToRemove = new Set([...eventsInCalendar].filter(e => !eventsInTimeline.has(e)));
 
   try {
-    await Promise.all(
-      timeline.get().map(async event => {
-        if (eventsInCalendar.has(event.id)) return;
-        await googleCalendar.addEvent({ credentials, calendar, event });
-      })
-    );
+    await Promise.all([
+      ...[...eventsToInsert].map(async id => {
+        await googleCalendar.addEvent({ credentials, calendar, event: timeline.getById(id) });
+      }),
+      ...[...eventsToRemove].map(async id => {
+        const { eventId } = calendarEvents.find(({ meta }) => meta.id === id);
+        await googleCalendar.deleteEvent({ credentials, calendar, eventId });
+      }),
+    ]);
   } catch (error) {
     ui.error('Failed to sync your calendar.');
     return;
