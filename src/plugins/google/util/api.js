@@ -42,9 +42,15 @@ const fetch = async ({ verb = 'GET', url, query, headers, data } = {}) => {
   }
 
   const req = await nodeFetch(url, options);
-  const res = await req.json();
+  const contentType = req.headers.get('content-type');
 
-  if (!req.ok) throw res;
+  let res = null;
+
+  if (contentType && contentType.includes('application/json')) {
+    res = await req.json();
+  }
+
+  if (!req.ok) throw res || req;
 
   return res;
 };
