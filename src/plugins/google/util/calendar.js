@@ -102,4 +102,19 @@ const addEvent = async ({ credentials, calendar, event } = {}) =>
     },
   });
 
-module.exports = { getCalendars, getEvents, addEvent };
+/**
+ * Delete an event from a calendar.
+ * @param  {Object}  _             Parameters.
+ * @param  {Object}  _.credentials Credentials.
+ * @param  {String}  _.calendar    Calendar id.
+ * @param  {String}  _.eventId     Calendar event's id.
+ * @return {Promise}               Resolves if deleted.
+ */
+const deleteEvent = async ({ credentials, calendar, eventId } = {}) =>
+  api.fetch({
+    verb: 'DELETE',
+    url: `https://www.googleapis.com/calendar/v3/calendars/${calendar}/events/${eventId}`,
+    headers: { ...api.authorizationHeader({ credentials }) },
+  });
+
+module.exports = { getCalendars, getEvents, addEvent, deleteEvent };
