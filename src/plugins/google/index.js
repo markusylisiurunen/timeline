@@ -23,7 +23,7 @@ const refreshAccessToken = async ({ configstore }) => {
   // Expires within 5 minutes
   const threshold = Date.now() + 5 * 60 * 1000;
 
-  if (!credentials || credentials.expiresAt < threshold) return;
+  if (!credentials || credentials.expiresAt > threshold) return;
 
   // Use the refresh token to acquire a new access token
   try {
