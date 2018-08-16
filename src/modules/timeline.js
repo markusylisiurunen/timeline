@@ -131,6 +131,16 @@ class Timeline extends EventEmitter {
   }
 
   /**
+   * Get an event by its id.
+   * @param  {String} id Event's id.
+   * @return {Object}    The event.
+   */
+  getById(id) {
+    ow(id, ow.string.minLength(1));
+    return this._eventsById[id] || null;
+  }
+
+  /**
    * Get events by their type.
    * @param  {String} type      The type to filter by.
    * @param  {Object} [options] Options for filtering events.
