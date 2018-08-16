@@ -65,7 +65,7 @@ const getEvents = async ({ credentials, calendar } = {}) => {
   events = events.items && events.items.length ? events.items : [];
 
   return events.map(event => ({
-    eventId: event.eventId,
+    eventId: event.id,
     meta: event.description
       .match(/\((.*)\)/)[1]
       .split(',')
