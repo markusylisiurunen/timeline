@@ -1,10 +1,11 @@
 /**
- * @overview Event plugin.
+ * @overview Plugin to manipulate general events.
  */
 
 const ow = require('ow');
 const combinatorics = require('js-combinatorics');
 const formatDuration = require('pretty-ms');
+const utilUi = require('../../util/ui');
 const utilOptions = require('../../util/options');
 const utilDate = require('../../util/date');
 const utilTable = require('../../util/table');
@@ -12,38 +13,71 @@ const utilTable = require('../../util/table');
 const docs = require('./docs');
 
 /**
- * Add a new event to the timeline.
+ * Add an event to the timeline.
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
 let add = async (args, { timeline }) => {
-  const options = await utilOptions.getOptions(args, [
-    { name: 'labels', flags: ['label', 'l'], question: { message: 'Labels:' } },
-    { name: 'description', flags: ['description', 'd'], question: { message: 'Description:' } },
-    { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
-    { name: 'to', flags: ['to', 't'], question: { message: 'Ended at:' } },
-  ]);
+  const existingLabels = new Set(timeline.get().reduce((a, b) => [...a, ...b.labels], []));
 
-  options.labels = Array.isArray(options.labels)
-    ? options.labels
-    : options.labels.split(',').map(l => l.trim());
-
-  options.from = Date.parse(options.from);
-  options.to = Date.parse(options.to);
+  const options = await utilOptions.getOptions(
+    args,
+    {
+      labels: ['label', 'l'],
+      description: ['description', 'd'],
+      from: ['from', 'f'],
+      to: ['to', 't'],
+    },
+    [
+      {
+        show: hash => !hash.labels && existingLabels.size > 0,
+        type: 'checkbox',
+        name: 'labels',
+        message: 'Pick from existing labels',
+        choices: [...existingLabels].sort(),
+      },
+      {
+        show: (_, hashFromArgs) => !hashFromArgs.labels,
+        transform: answer => answer.split(',').map(a => a.trim()),
+        type: 'input',
+        name: 'labels',
+        message: 'Add new labels:',
+      },
+      {
+        show: hash => !hash.description,
+        type: 'input',
+        name: 'description',
+        message: 'Description:',
+      },
+      {
+        show: hash => !hash.from,
+        type: 'input',
+        name: 'from',
+        message: 'Starting time:',
+      },
+      {
+        show: hash => !hash.to,
+        type: 'input',
+        name: 'to',
+        message: 'Ending time:',
+      },
+    ]
+  );
 
   try {
+    options.from = utilDate.parseDate(options.from).getTime();
+    options.to = utilDate.parseDate(options.to).getTime();
+
     ow(options.labels, ow.array.nonEmpty.ofType(ow.string.minLength(1)));
     ow(options.description, ow.string.minLength(1));
-    ow(options.from, ow.number.greaterThan(0));
-    ow(options.to, ow.number.greaterThan(0));
   } catch (error) {
-    console.log('Invalid options.');
+    console.log(error);
+    utilUi.error('Invalid options.');
     return;
   }
 
   timeline.add('default', options.labels, options.description, options.from, options.to);
-
-  console.log('Done.');
+  utilUi.say('Event added to your timeline.');
 };
 
 /**
