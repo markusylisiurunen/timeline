@@ -1,14 +1,15 @@
 /**
- * @overview Work plugin.
+ * @overview Plugin for work events.
  */
 
 const ow = require('ow');
 const log = require('single-line-log').stdout;
 const formatDuration = require('pretty-ms');
-const utilOptions = require('../../util/options');
 const utilDate = require('../../util/date');
-const utilTable = require('../../util/table');
+const utilOptions = require('../../util/options');
 const utilPlugin = require('./util');
+const utilTable = require('../../util/table');
+const utilUi = require('../../util/ui');
 
 const docs = require('./docs');
 
@@ -17,28 +18,71 @@ const docs = require('./docs');
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-let add = async (args, { timeline }) => {
-  const options = await utilOptions.getOptions(args, [
-    { name: 'labels', flags: ['label', 'l'], question: { message: 'Labels:' } },
-    { name: 'salary', flags: ['salary', 's'], question: { message: 'Salary:' } },
-    { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
-    { name: 'to', flags: ['to', 't'], question: { message: 'Ended at:' } },
-  ]);
+const add = async (args, { timeline }) => {
+  // Create a set of existing labels for the user to select
+  const labels = new Set(
+    timeline.getByType('work').reduce((acc, { labels }) => [...acc, ...labels], [])
+  );
 
-  options.labels = Array.isArray(options.labels)
-    ? options.labels
-    : options.labels.split(',').map(l => l.trim());
+  // Prompt the user for information
+  const options = await utilOptions.getOptions(
+    args,
+    {
+      salary: ['salary', 's'],
+      labels: ['label', 'l'],
+      from: ['from', 'f'],
+      to: ['to', 't'],
+    },
+    [
+      {
+        show: hash => !hash.salary,
+        type: 'input',
+        name: 'salary',
+        message: 'Salary:',
+      },
+      {
+        show: (_, argsHash) => !argsHash.labels && labels.size > 0,
+        type: 'checkbox',
+        name: 'labels',
+        message: 'Pick from existing labels',
+        choices: [...labels],
+      },
+      {
+        show: (_, argsHash) => !argsHash.labels,
+        transform: ans => (ans.length > 0 ? ans.split(',').map(label => label.trim()) : null),
+        type: 'input',
+        name: 'labels',
+        message: 'Labels:',
+      },
+      {
+        show: hash => !hash.from,
+        type: 'input',
+        name: 'from',
+        message: 'Starting time:',
+      },
+      {
+        show: hash => !hash.to,
+        type: 'input',
+        name: 'to',
+        message: 'Ending time:',
+      },
+    ]
+  );
 
-  options.salary = Number(options.salary);
+  if (options.labels && !Array.isArray(options.labels)) {
+    options.labels = [options.labels];
+  }
+
+  options.salary = options.salary && Number(options.salary);
 
   try {
+    options.from = utilDate.parseDate(options.from).getTime();
+    options.to = utilDate.parseDate(options.to).getTime();
+
     ow(options.labels, ow.array.nonEmpty.ofType(ow.string.minLength(1)));
     ow(options.salary, ow.number.greaterThanOrEqual(0));
-
-    options.from = Date.parse(options.from);
-    options.to = Date.parse(options.to);
   } catch (error) {
-    console.log('Invalid options.');
+    utilUi.say('Invalid options.');
     return;
   }
 
@@ -55,7 +99,7 @@ let add = async (args, { timeline }) => {
 
   timeline.add('work', options.labels, description, options.from, options.to, { earnings });
 
-  console.log('Done.');
+  utilUi.say('Done.');
 };
 
 /**
@@ -63,28 +107,54 @@ let add = async (args, { timeline }) => {
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-let live = async (args, { timeline }) => {
+const live = async (args, { timeline }) => {
+  // Create the default since value
   const defaultSince = new Date();
 
   defaultSince.setHours(0);
   defaultSince.setMinutes(0);
 
-  // prettier-ignore
-  const options = await utilOptions.getOptions(args, [
-    { name: 'salary', flags: ['salary', 's'], question: { message: 'Salary:' } },
-    { name: 'since', flags: ['since', 'S'], question: { message: 'Since:', default: utilDate.formatDateTime(defaultSince) } },
-    { name: 'from', flags: ['from', 'f'], question: { message: 'Started at:' } },
-  ]);
+  // Prompt the user for information
+  const options = await utilOptions.getOptions(
+    args,
+    {
+      salary: ['salary', 's'],
+      since: ['since', 'S'],
+      from: ['from', 'f'],
+    },
+    [
+      {
+        show: hash => !hash.salary,
+        type: 'input',
+        name: 'salary',
+        message: 'Salary:',
+      },
+      {
+        show: hash => !hash.since,
+        type: 'input',
+        name: 'since',
+        message: 'Since:',
+        default: utilDate.formatDateTime(defaultSince),
+      },
+      {
+        show: hash => !hash.from,
+        type: 'input',
+        name: 'from',
+        message: 'Starting time:',
+      },
+    ]
+  );
 
   options.salary = Number(options.salary);
 
+  // Validate options
   try {
-    ow(options.salary, ow.number.greaterThanOrEqual(0));
+    options.since = utilDate.parseDate(options.since).getTime();
+    options.from = utilDate.parseDate(options.from).getTime();
 
-    options.since = Date.parse(options.since);
-    options.from = Date.parse(options.from);
+    ow(options.salary, ow.number.greaterThanOrEqual(0));
   } catch (error) {
-    console.log('Invalid options.');
+    utilUi.error('Invalid options.');
     return;
   }
 
@@ -124,30 +194,43 @@ let live = async (args, { timeline }) => {
  * @param {Object} args    Arguments passed to the progran.
  * @param {Object} context Context object.
  */
-let report = async (args, { timeline }) => {
-  const defaultSince = new Date();
+const report = async (args, { timeline }) => {
+  const options = await utilOptions.getOptions(
+    args,
+    {
+      since: ['since', 's'],
+      until: ['until', 'u'],
+    },
+    [
+      {
+        show: hash => !hash.since,
+        type: 'input',
+        name: 'since',
+        message: 'Since:',
+      },
+      {
+        show: hash => !hash.until,
+        type: 'input',
+        name: 'until',
+        message: 'Until:',
+        default: utilDate.formatDateTime(new Date()),
+      },
+    ]
+  );
 
-  defaultSince.setHours(0);
-  defaultSince.setMinutes(0);
-
-  // prettier-ignore
-  const options = await utilOptions.getOptions(args, [
-    { name: 'since', flags: ['since', 's'], question: { message: 'Since:', default: utilDate.formatDateTime(defaultSince) } },
-    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: utilDate.formatDateTime(new Date()) } },
-  ]);
-
+  // Validate options
   try {
-    options.since = Date.parse(options.since);
-    options.until = Date.parse(options.until);
+    options.since = utilDate.parseDate(options.since).getTime();
+    options.until = utilDate.parseDate(options.until).getTime();
   } catch (error) {
-    console.log('Invalid options.');
+    utilUi.error('Invalid options.');
     return;
   }
 
   const events = timeline.getByType('work', { since: options.since, until: options.until });
 
   if (!events.length) {
-    console.log('No events found.');
+    utilUi.say('No events found.');
     return;
   }
 
@@ -166,17 +249,13 @@ let report = async (args, { timeline }) => {
 
   const summary = `   Worked for ${formatDuration(duration)} and earned ${earnings.toFixed(2)} €.`;
 
-  console.log(`${table}${summary}\n`);
+  process.stdout.write(`${table}${summary}`);
 };
 
 module.exports = (args, context) => {
   const { commands } = context;
 
-  add = add.bind(null, args, context);
-  live = live.bind(null, args, context);
-  report = report.bind(null, args, context);
-
-  commands.register('work.add', add, docs.add);
-  commands.register('work.live', live, docs.live);
-  commands.register('work.report', report, docs.report);
+  commands.register('work.add', add.bind(null, args, context), docs.add);
+  commands.register('work.live', live.bind(null, args, context), docs.live);
+  commands.register('work.report', report.bind(null, args, context), docs.report);
 };
