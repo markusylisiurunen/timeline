@@ -1,14 +1,14 @@
 /**
- * @overview Plugin to manipulate general events.
+ * @overview Plugin for general events.
  */
 
 const ow = require('ow');
 const combinatorics = require('js-combinatorics');
 const formatDuration = require('pretty-ms');
-const utilUi = require('../../util/ui');
-const utilOptions = require('../../util/options');
 const utilDate = require('../../util/date');
+const utilOptions = require('../../util/options');
 const utilTable = require('../../util/table');
+const utilUi = require('../../util/ui');
 
 const docs = require('./docs');
 
@@ -17,9 +17,11 @@ const docs = require('./docs');
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-let add = async (args, { timeline }) => {
-  const existingLabels = new Set(timeline.get().reduce((a, b) => [...a, ...b.labels], []));
+const add = async (args, { timeline }) => {
+  // Create a set of existing labels for the user to select
+  const labels = new Set(timeline.get().reduce((acc, { labels }) => [...acc, ...labels], []));
 
+  // Prompt the user for information
   const options = await utilOptions.getOptions(
     args,
     {
@@ -30,18 +32,18 @@ let add = async (args, { timeline }) => {
     },
     [
       {
-        show: hash => !hash.labels && existingLabels.size > 0,
+        show: (_, argsHash) => !argsHash.labels && labels.size > 0,
         type: 'checkbox',
         name: 'labels',
         message: 'Pick from existing labels',
-        choices: [...existingLabels].sort(),
+        choices: [...labels],
       },
       {
-        show: (_, hashFromArgs) => !hashFromArgs.labels,
-        transform: answer => answer.split(',').map(a => a.trim()),
+        show: (_, argsHash) => !argsHash.labels,
+        transform: ans => (ans.length > 0 ? ans.split(',').map(label => label.trim()) : null),
         type: 'input',
         name: 'labels',
-        message: 'Add new labels:',
+        message: 'Labels:',
       },
       {
         show: hash => !hash.description,
@@ -64,6 +66,11 @@ let add = async (args, { timeline }) => {
     ]
   );
 
+  if (options.labels && !Array.isArray(options.labels)) {
+    options.labels = [options.labels];
+  }
+
+  // Validate options
   try {
     options.from = utilDate.parseDate(options.from).getTime();
     options.to = utilDate.parseDate(options.to).getTime();
@@ -85,28 +92,44 @@ let add = async (args, { timeline }) => {
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-let reportByType = async (args, { timeline }) => {
-  // prettier-ignore
-  const options = await utilOptions.getOptions(args, [
-    { name: 'since', flags: ['since', 's'], question: { message: 'Since:' } },
-    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: utilDate.formatDateTime(new Date()) } },
-  ]);
+const reportByType = async (args, { timeline }) => {
+  const options = await utilOptions.getOptions(
+    args,
+    {
+      since: ['since', 's'],
+      until: ['until', 'u'],
+    },
+    [
+      {
+        show: hash => !hash.since,
+        type: 'input',
+        name: 'since',
+        message: 'Since:',
+      },
+      {
+        show: hash => !hash.until,
+        type: 'input',
+        name: 'until',
+        message: 'Until:',
+        default: utilDate.formatDateTime(new Date()),
+      },
+    ]
+  );
 
-  options.since = Date.parse(options.since);
-  options.until = Date.parse(options.until);
-
+  // Validate options
   try {
-    ow(options.since, ow.number.greaterThan(0));
-    ow(options.until, ow.number.greaterThan(0));
+    options.since = utilDate.parseDate(options.since).getTime();
+    options.until = utilDate.parseDate(options.until).getTime();
   } catch (error) {
-    console.log('Invalid options.');
+    utilUi.error('Invalid options.');
     return;
   }
 
+  // Construct the report
   const events = timeline.get({ since: options.since, until: options.until });
 
   if (!events.length) {
-    console.log('No events found.');
+    utilUi.say('No events found.');
     return;
   }
 
@@ -117,12 +140,12 @@ let reportByType = async (args, { timeline }) => {
     types[event.type] = (types[event.type] || 0) + spentTime;
   });
 
-  const head = ['Labels', 'Spent time'];
+  const head = ['Type', 'Spent time'];
   const rows = Object.keys(types)
     .sort()
     .map(type => [type, formatDuration(types[type])]);
 
-  console.log(utilTable.constructTable(head, rows));
+  process.stdout.write(utilTable.constructTable(head, rows));
 };
 
 /**
@@ -130,28 +153,43 @@ let reportByType = async (args, { timeline }) => {
  * @param {Object} args    Parsed arguments.
  * @param {Object} context Context object.
  */
-let reportByLabel = async (args, { timeline }) => {
-  // prettier-ignore
-  const options = await utilOptions.getOptions(args, [
-    { name: 'since', flags: ['since', 's'], question: { message: 'Since:' } },
-    { name: 'until', flags: ['until', 'u'], question: { message: 'Until:', default: utilDate.formatDate(new Date()) } },
-  ]);
+const reportByLabel = async (args, { timeline }) => {
+  const options = await utilOptions.getOptions(
+    args,
+    {
+      since: ['since', 's'],
+      until: ['until', 'u'],
+    },
+    [
+      {
+        show: hash => !hash.since,
+        type: 'input',
+        name: 'since',
+        message: 'Since:',
+      },
+      {
+        show: hash => !hash.until,
+        type: 'input',
+        name: 'until',
+        message: 'Until:',
+        default: utilDate.formatDateTime(new Date()),
+      },
+    ]
+  );
 
-  options.since = Date.parse(options.since);
-  options.until = Date.parse(options.until);
-
+  // Validate options
   try {
-    ow(options.since, ow.number.greaterThan(0));
-    ow(options.until, ow.number.greaterThan(0));
+    options.since = utilDate.parseDate(options.since).getTime();
+    options.until = utilDate.parseDate(options.until).getTime();
   } catch (error) {
-    console.log('Invalid options.');
+    utilUi.error('Invalid options.');
     return;
   }
 
   const events = timeline.get({ since: options.since, until: options.until });
 
   if (!events.length) {
-    console.log('No events found.');
+    utilUi.say('No events found.');
     return;
   }
 
@@ -174,16 +212,17 @@ let reportByLabel = async (args, { timeline }) => {
     .sort()
     .map(labelGroup => [labelGroup, formatDuration(labelGroups[labelGroup])]);
 
-  console.log(utilTable.constructTable(head, rows));
+  process.stdout.write(utilTable.constructTable(head, rows));
 };
 
 module.exports = (args, context) => {
   const { commands } = context;
 
-  add = add.bind(null, args, context);
-  reportByLabel = reportByLabel.bind(null, args, context);
-
-  commands.register('event.add', add, docs.add);
-  commands.register('event.report.type', reportByType, docs.reportByType);
-  commands.register('event.report.label', reportByLabel, docs.reportByLabel);
+  commands.register('event.add', add.bind(null, args, context), docs.add);
+  commands.register('event.report.type', reportByType.bind(null, args, context), docs.reportByType);
+  commands.register(
+    'event.report.label',
+    reportByLabel.bind(null, args, context),
+    docs.reportByLabel
+  );
 };
