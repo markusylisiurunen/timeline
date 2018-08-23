@@ -131,7 +131,6 @@ const init = async ({ configstore }) => {
       pollInterval: codes.interval * 1000,
     });
   } catch (error) {
-    console.log(error);
     ui.error('Permissions not granted.');
     return;
   }
