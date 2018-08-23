@@ -2,128 +2,267 @@
  * @overview Plugin to integrate with Google services.
  */
 
+const chalk = require('chalk');
 const config = require('../../config');
-const utilPlugin = require('./util');
+const ui = require('../../util/ui');
+const auth = require('./util/auth');
+const googleSheets = require('./util/sheets');
+const googleCalendar = require('./util/calendar');
 
 const docs = require('./docs');
 
+// Lifecycle hooks
+
 /**
- * Refresh the user's access token if it has expired.
- * @param {Object} args    Parsed arguments.
+ * Refresh an expired access token.
  * @param {Object} context Context object.
  */
-let refreshToken = async (args, { configstore }) => {
+const refreshAccessToken = async ({ configstore }) => {
   const credentials = configstore.get('google.credentials');
 
-  if (!credentials || credentials.expiresAt > Date.now() - 30 * 1000) return;
+  // Expires within 5 minutes
+  const threshold = Date.now() + 5 * 60 * 1000;
 
-  let tokens = null;
+  if (!credentials || credentials.expiresAt > threshold) return;
+
+  // Use the refresh token to acquire a new access token
+  try {
+    const { clientId, clientSecret } = config.google;
+    const { refreshToken } = credentials;
+
+    const tokens = await auth.refreshAccessToken({ clientId, clientSecret, refreshToken });
+
+    configstore.set('google.credentials', { ...credentials, ...tokens });
+  } catch (error) {
+    configstore.delete('google');
+    ui.error('Failed to refresh Google API tokens.');
+  }
+};
+
+/**
+ * Load events from Google Sheets.
+ * @param {Object} context Context object.
+ */
+const loadEvents = async ({ configstore, timeline }) => {
+  const googleConfig = configstore.get('google');
+
+  if (!googleConfig) return;
+
+  const { credentials, spreadsheet, sheet } = googleConfig;
 
   try {
-    tokens = await utilPlugin.refreshAccessToken(
-      config.google.clientId,
-      config.google.clientSecret,
-      credentials.refreshToken
-    );
+    const events = await googleSheets.getEvents({ credentials, spreadsheet, sheet });
+    timeline.init(events);
   } catch (error) {
-    configstore.delete('google.credentials');
+    ui.error('Failed to load events from Google Sheets.');
+  }
+};
+
+// Timeline hooks
+
+/**
+ * Add a new event to Google Sheets and Google Calendar.
+ * @param {Object} context Context object.
+ * @param {Object} event   Event to add.
+ */
+const onEventAdd = async ({ configstore }, event) => {
+  const googleConfig = configstore.get('google');
+
+  if (!googleConfig) return;
+
+  const { credentials, spreadsheet, sheet, calendar } = googleConfig;
+
+  try {
+    await Promise.all([
+      googleSheets.addEvent({ credentials, locale: 'fi-FI', spreadsheet, sheet, event }),
+      googleCalendar.addEvent({ credentials, calendar, event }),
+    ]);
+  } catch (error) {
+    ui.error('Failed to add event to Google Services.');
+  }
+};
+
+// Commands
+
+/**
+ * Initialise the Google plugin.
+ * @param {Object} context Context object.
+ */
+const init = async ({ configstore }) => {
+  const googleConfig = configstore.get('google');
+
+  // Revoke previous credentials
+  if (googleConfig) {
+    configstore.delete('google');
+
+    try {
+      const { accessToken } = googleConfig.credentials;
+      await auth.revokeAccess({ accessToken });
+    } catch (error) {}
+  }
+
+  const { clientId, clientSecret } = config.google;
+
+  // Request user to grant permissions
+  let codes = null;
+
+  try {
+    codes = await auth.getDeviceAndUserCodes({
+      clientId,
+      scopes: [
+        'https://www.googleapis.com/auth/spreadsheets',
+        'https://www.googleapis.com/auth/calendar',
+      ],
+    });
+  } catch (error) {
+    ui.error('Failed to acquire device and user codes.');
     return;
   }
 
-  configstore.set('google.credentials', {
-    ...credentials,
-    accessToken: tokens.access_token,
-    tokenType: tokens.token_type,
-    expiresAt: Date.now() + tokens.expires_in * 1000,
-  });
-};
+  ui.say(chalk`Open {bold ${codes.verification_url}} and enter: {bold ${codes.user_code}}`);
 
-/**
- * Authorize the user with Google Calendar and Sheets.
- * @param {Object} args    Parsed arguments.
- * @param {Object} context Context object.
- */
-let authorize = async (args, { configstore }) => {
-  const codes = await utilPlugin.getCodes(config.google.clientId);
+  let credentials = null;
 
-  console.log(`Open you browser at ${codes.verification_url} and enter the following code.`);
-  console.log(`Code: ${codes.user_code}`);
-
-  const checkPermissions = async () => {
-    let res = null;
-
-    try {
-      res = await utilPlugin.poll(
-        config.google.clientId,
-        config.google.clientSecret,
-        codes.device_code
-      );
-    } catch (data) {
-      if (data.error === 'authorization_pending') return res;
-
-      if (data.error === 'access_denied') {
-        throw new Error('You refused to grant permissions.');
-      }
-
-      throw new Error(data.error_description);
-    }
-
-    return res;
-  };
-
-  let interval = setInterval(async () => {
-    let tokens = null;
-
-    try {
-      tokens = await checkPermissions();
-    } catch (error) {
-      console.log(error.message);
-      clearInterval(interval);
-    }
-
-    if (!tokens || !tokens.access_token) return;
-
-    clearInterval(interval);
-
-    configstore.set('google.credentials', {
-      accessToken: tokens.access_token,
-      refreshToken: tokens.refresh_token,
-      tokenType: tokens.token_type,
-      expiresAt: Date.now() + tokens.expires_in * 1000,
+  try {
+    credentials = await auth.waitForGrantedPermissions({
+      clientId,
+      clientSecret,
+      deviceCode: codes.device_code,
+      pollInterval: codes.interval * 1000,
     });
-
-    console.log('Done.');
-  }, codes.interval * 1000);
-};
-
-/**
- * Revoke previously granted permissions.
- * @param {Object} args    Parsed arguments.
- * @param {Object} context Context object.
- */
-let revoke = async (args, { configstore }) => {
-  const credentials = configstore.get('google.credentials');
-
-  configstore.delete('google.credentials');
-
-  if (credentials) {
-    await utilPlugin.revokeTokens(credentials.accessToken);
+  } catch (error) {
+    ui.error('Permissions not granted.');
+    return;
   }
 
-  console.log('Google plugin has been reset.');
+  // Ask the user to pick a spreadsheet
+  const { spreadsheet } = await ui.ask({
+    name: 'spreadsheet',
+    message: 'Which spreadsheet to use?',
+  });
+
+  // Ask the user to select a sheet
+  let sheet = null;
+
+  try {
+    const sheets = await googleSheets.getSheets({ credentials, spreadsheet });
+
+    ({ sheet } = await ui.ask({
+      type: 'list',
+      name: 'sheet',
+      message: 'Which sheet to use?',
+      choices: sheets.map(({ properties }) => ({
+        name: properties.title,
+        value: properties.sheetId,
+      })),
+    }));
+  } catch (error) {
+    ui.error('Failed to list sheets.');
+    return;
+  }
+
+  // Ask the user to select a calendar
+  let calendar = null;
+
+  try {
+    const calendars = await googleCalendar.getCalendars({ credentials });
+
+    ({ calendar } = await ui.ask({
+      type: 'list',
+      name: 'calendar',
+      message: 'Which calendar to use?',
+      choices: calendars.map(calendar => ({ name: calendar.summary, value: calendar.id })),
+    }));
+  } catch (error) {
+    ui.error('Failed to list calendars.');
+    return;
+  }
+
+  // TODO: Validate the answers
+
+  configstore.set('google', { credentials, spreadsheet, sheet, calendar });
+  ui.say('Google services have been set up.');
+};
+
+/**
+ * Sync Google Calendar with Google Sheets.
+ * @param {Object} context Context object.
+ */
+const sync = async ({ configstore, timeline }) => {
+  const googleConfig = configstore.get('google');
+
+  if (!googleConfig) {
+    ui.error('Google plugin has not been initialised.');
+    return;
+  }
+
+  const { credentials, calendar } = googleConfig;
+
+  let calendarEvents = null;
+
+  try {
+    calendarEvents = await googleCalendar.getEvents({ credentials, calendar });
+  } catch (error) {
+    ui.error('Failed to load events from Google Calendar.');
+    return;
+  }
+
+  // Create the sets to insert and remove
+  const eventsInTimeline = new Set(timeline.get().map(event => event.id));
+  const eventsInCalendar = new Set(calendarEvents.map(event => event.meta.id));
+
+  const eventsToInsert = new Set([...eventsInTimeline].filter(e => !eventsInCalendar.has(e)));
+  const eventsToRemove = new Set([...eventsInCalendar].filter(e => !eventsInTimeline.has(e)));
+
+  try {
+    await Promise.all([
+      ...[...eventsToInsert].map(async id => {
+        await googleCalendar.addEvent({ credentials, calendar, event: timeline.getById(id) });
+      }),
+      ...[...eventsToRemove].map(async id => {
+        const { eventId } = calendarEvents.find(({ meta }) => meta.id === id);
+        await googleCalendar.deleteEvent({ credentials, calendar, eventId });
+      }),
+    ]);
+  } catch (error) {
+    ui.error('Failed to sync your calendar.');
+    return;
+  }
+
+  ui.say('Calendar has been synced.');
+};
+
+/**
+ * Reset the Google plugin.
+ * @param {Object} context Context object.
+ */
+const reset = async ({ configstore }) => {
+  const googleConfig = configstore.get('google');
+
+  if (googleConfig) {
+    configstore.delete('google');
+
+    try {
+      const { accessToken } = googleConfig.credentials;
+      await auth.revokeAccess({ accessToken });
+    } catch (error) {
+      ui.error('Failed to revoke permissions.');
+      return;
+    }
+  }
+
+  ui.say('Google plugin has been reset.');
 };
 
 module.exports = (args, context) => {
-  const { lifecycle, commands } = context;
+  const { lifecycle, commands, timeline } = context;
 
-  refreshToken = refreshToken.bind(null, args, context);
-  authorize = authorize.bind(null, args, context);
-  revoke = revoke.bind(null, args, context);
+  lifecycle.on('init', refreshAccessToken.bind(null, context));
+  lifecycle.on('preCommand', loadEvents.bind(null, context));
 
-  // Refresh the access token on init if necessary
-  lifecycle.on('init', refreshToken);
+  timeline.on('event.add', onEventAdd.bind(null, context));
 
-  // Register commands for this plugin
-  commands.register('google.authorize', authorize, docs.authorize);
-  commands.register('google.revoke', revoke, docs.revoke);
+  commands.register('google.init', init.bind(null, context), docs.init);
+  commands.register('google.sync', sync.bind(null, context), docs.sync);
+  commands.register('google.reset', reset.bind(null, context), docs.reset);
 };

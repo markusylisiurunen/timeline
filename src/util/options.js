@@ -1,36 +1,62 @@
 /**
- * @overview Parse options from flags or questions.
+ * @overview Options parsing utility functions.
  */
 
-const inquirer = require('inquirer');
+const ui = require('./ui');
 
 /**
- * Get options for a command either from flags or via interactive questions.
- * @param  {Object} args    Parsed arguments.
- * @param  {Array}  options Array of options.
- * @return {Object}         Get options.
+ * Combine options from flags and asked questions.
+ * @param  {Object} flags     Parsed arguments.
+ * @param  {Object} mappings  Mappings for the flags.
+ * @param  {Array}  questions An array of questions.
+ * @return {Object}           Combined options.
  */
-const getOptions = async (args, options) => {
-  const result = {};
+const getOptions = async (flags, mappings, questions) => {
+  const hash = {};
 
-  for (let option of options) {
-    let value = null;
+  // Map flags to the result hash
+  Object.entries(mappings).forEach(([name, flagsToMap]) => {
+    flagsToMap.forEach(flagToMap => {
+      if (flags[flagToMap] !== undefined) {
+        const hashIsArray = Array.isArray(hash[name]);
+        const flagIsArray = Array.isArray(flags[flagToMap]);
 
-    if (Array.isArray(option.flags)) {
-      for (let flag of option.flags) {
-        value = args[flag] || null;
-        if (value) break;
+        if (hashIsArray) {
+          hash[name] = [...hash[name], ...(flagIsArray ? flags[flagToMap] : [flags[flagToMap]])];
+        } else {
+          hash[name] = flags[flagToMap];
+        }
       }
+    });
+  });
+
+  const hashFromFlags = { ...hash };
+
+  // Ask the questions from the user
+  for (let question of questions) {
+    const { name, show, transform } = question;
+
+    if (show && !(await show(hash, hashFromFlags))) continue;
+
+    let answer = (await ui.ask(question))[name];
+
+    if (transform) {
+      answer = await transform(answer);
     }
 
-    if (!value && option.question) {
-      value = (await inquirer.prompt({ name: option.name, ...option.question }))[option.name];
-    }
+    if (answer === null) continue;
 
-    result[option.name] = value;
+    const hashIsArray = Array.isArray(hash[name]);
+    const answerIsArray = Array.isArray(answer);
+
+    if (hashIsArray) {
+      hash[name] = [...hash[name], ...(answerIsArray ? answer : [answer])];
+    } else {
+      hash[name] = answer;
+    }
   }
 
-  return result;
+  return hash;
 };
 
 module.exports = { getOptions };
