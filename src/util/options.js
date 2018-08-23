@@ -44,6 +44,8 @@ const getOptions = async (flags, mappings, questions) => {
       answer = await transform(answer);
     }
 
+    if (answer === null) continue;
+
     const hashIsArray = Array.isArray(hash[name]);
     const answerIsArray = Array.isArray(answer);
 
