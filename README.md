@@ -5,7 +5,7 @@
 
 # Timeline
 
-A CLI application for tracking events on a timeline.
+A CLI tool for tracking events on a timeline.
 
 ## Installation
 
@@ -19,32 +19,32 @@ The application uses Google services (Calendar and Sheets) to display and store 
 services require the user to grant permissions for the application. This can be done with a single
 command.
 
-`$ timeline google authorize`
+`$ timeline google init`
 
 This command will give you an URL and a code. To grant the required permissions, navigate to the
 provided URL and write the code once prompted.
 
+> **Tip** You can find the spreadsheet id from the URL in your browser.
+
 If you want to revoke the permissions, you can run the following command.
 
-`$ timeline google revoke`
+`$ timeline google reset`
 
 ## Commands
 
 Here is a list of all available commands.
 
-| Command            | Description                                              |
-| ------------------ | -------------------------------------------------------- |
-| `calendar.init`    | Initialise the Google Calendar plugin.                   |
-| `calendar.reset`   | Reset the Google Calendar plugin.                        |
-| `calendar.sync`    | Synchronize your timeline with your Google Calendar.     |
-| `event.add`        | Add a new event to your timeline.                        |
-| `google.authorize` | Grant the application access to your Google services.    |
-| `google.revoke`    | Revoke the application's access to your Google services. |
-| `sheets.init`      | Initialise the Google Sheets plugin.                     |
-| `sheets.reset`     | Reset the Google Sheets plugin.                          |
-| `work.add`         | Add a new work event to your timeline.                   |
-| `work.live`        | Show a live report of your work events.                  |
-| `work.report`      | Show a report of your work events.                       |
+| Command              | Description                                              |
+| -------------------- | -------------------------------------------------------- |
+| `event add`          | Add a new event to your timeline.                        |
+| `event report label` | Show a report of your events by label.                   |
+| `event report type`  | Show a report of your events by type.                    |
+| `google init`        | Grant the application access to your Google services.    |
+| `google reset`       | Revoke the application's access to your Google services. |
+| `google sync`        | Synchronize your timeline with your Google Calendar.     |
+| `work add`           | Add a new work event to your timeline.                   |
+| `work live`          | Show a live report of your work events.                  |
+| `work report`        | Show a report of your work events.                       |
 
 You can run the following command to get a more detailed description.
 
