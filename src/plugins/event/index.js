@@ -78,13 +78,12 @@ const add = async (args, { timeline }) => {
     ow(options.labels, ow.array.nonEmpty.ofType(ow.string.minLength(1)));
     ow(options.description, ow.string.minLength(1));
   } catch (error) {
-    console.log(error);
     utilUi.error('Invalid options.');
     return;
   }
 
   timeline.add('default', options.labels, options.description, options.from, options.to);
-  utilUi.say('Event added to your timeline.');
+  utilUi.say('Done.');
 };
 
 /**
