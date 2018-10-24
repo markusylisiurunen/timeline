@@ -22,8 +22,6 @@ const add = async (args, { timeline }) => {
   const labelsCollection = timeline.get().reduce((acc, { labels }) => [...acc, ...labels], []);
   const labels = [...new Set(labelsCollection)].sort();
 
-  console.log(labels);
-
   // Prompt the user for information
   const options = await utilOptions.getOptions(
     args,
