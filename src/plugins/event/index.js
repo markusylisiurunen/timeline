@@ -19,7 +19,8 @@ const docs = require('./docs');
  */
 const add = async (args, { timeline }) => {
   // Create a set of existing labels for the user to select
-  const labels = new Set(timeline.get().reduce((acc, { labels }) => [...acc, ...labels], []));
+  const labelsCollection = timeline.get().reduce((acc, { labels }) => [...acc, ...labels], []);
+  const labels = [...new Set(labelsCollection)].sort();
 
   // Prompt the user for information
   const options = await utilOptions.getOptions(
@@ -32,11 +33,11 @@ const add = async (args, { timeline }) => {
     },
     [
       {
-        show: (_, argsHash) => !argsHash.labels && labels.size > 0,
+        show: (_, argsHash) => !argsHash.labels && labels.length > 0,
         type: 'checkbox',
         name: 'labels',
         message: 'Pick from existing labels',
-        choices: [...labels],
+        choices: labels,
       },
       {
         show: (_, argsHash) => !argsHash.labels,
