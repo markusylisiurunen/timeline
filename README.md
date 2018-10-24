@@ -7,6 +7,14 @@
 
 A CLI tool for tracking events on a timeline.
 
+1. [Installation](#installation)
+2. [Setup](#setup)
+3. [Commands](#commands)
+4. [Development](#development)
+   1. [Running commands](#running-commands)
+   2. [Google services](#google-services)
+5. [License](#license)
+
 ## Installation
 
 ```sh
@@ -49,6 +57,25 @@ Here is a list of all available commands.
 You can run the following command to get a more detailed description.
 
 `$ timeline <command> --help`.
+
+## Development
+
+This section contains the instructions to develop this package.
+
+### Running commands
+
+You could run `npm link` to install the package globally but that would conflict with the real
+published package from npm. Instead, you should run commands by doing `npm start -- <command>`. This
+will make sure you are "sandboxed" in the development environment.
+
+`$ npm start -- event add`
+
+### Google services
+
+Currently this package relies only on Google services to store events. You should setup the
+development version in a same way as described in the [setup](#setup) section.
+
+> Note! You should use the `npm start -- <command>` versions of the commands.
 
 ## License
 
