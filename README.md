@@ -5,7 +5,7 @@
 
 # Timeline
 
-A CLI tool for tracking events on a timeline.
+A CLI tool for flexible time tracking.
 
 1. [Installation](#installation)
 2. [Setup](#setup)
@@ -21,22 +21,35 @@ A CLI tool for tracking events on a timeline.
 $ npm install -g @markusylisiurunen/timeline
 ```
 
+or
+
+```sh
+$ yarn global add @markusylisiurunen/timeline
+```
+
 ## Setup
 
-The application uses Google services (Calendar and Sheets) to display and store data. However, these
-services require the user to grant permissions for the application. This can be done with a single
-command.
+This tool uses Google services to save and display the logged time. Google Sheets is used for
+storing the logged entries and Google Calendar is used to display them. You need to grant
+permissions to these services before you can start using this tool.
 
-`$ timeline google init`
+To grant the required permissions, you can run the following command and follow the instructions.
 
-This command will give you an URL and a code. To grant the required permissions, navigate to the
-provided URL and write the code once prompted.
+```sh
+$ timeline google init
+```
 
-> **Tip** You can find the spreadsheet id from the URL in your browser.
+This process will set up Google Sheets and Google Calendar for the tool. You should create a new
+Google Sheet document and it's also recommended to create a new Google Calendar calendar in order to
+separate your personal calendar events from the events created by this tool.
 
-If you want to revoke the permissions, you can run the following command.
+> **Tip:** The Google Sheet document id can be found in the URL bar of your browser.
 
-`$ timeline google reset`
+To revoke the access token granted to this tool, you can run the following command.
+
+```sh
+$ timeline google reset
+```
 
 ## Commands
 
@@ -56,7 +69,9 @@ Here is a list of all available commands.
 
 You can run the following command to get a more detailed description.
 
-`$ timeline <command> --help`.
+```sh
+$ timeline <command> --help
+```
 
 ## Development
 
@@ -68,7 +83,9 @@ You could run `npm link` to install the package globally but that would conflict
 published package from npm. Instead, you should run commands by doing `npm start -- <command>`. This
 will make sure you are "sandboxed" in the development environment.
 
-`$ npm start -- event add`
+```sh
+$ npm start -- event add
+```
 
 ### Google services
 
