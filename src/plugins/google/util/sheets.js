@@ -11,7 +11,12 @@ const api = require('./api');
  */
 const convertSerialNumberDate = serialNumberDate => {
   const daysSinceUnix = serialNumberDate - 25569;
-  return new Date(Math.round(daysSinceUnix * 86400 * 1000));
+  let date = new Date(Math.round(daysSinceUnix * 86400 * 1000));
+
+  // FIXME: This garbage! But I can't bother fixing this as I'm building a new version anyway...
+  date = new Date(date.getTime() + date.getTimezoneOffset() * 60 * 1000);
+
+  return date;
 };
 
 // Exported functions
@@ -94,6 +99,8 @@ const getEvents = async ({ credentials, spreadsheet, sheet } = {}) => {
     to = convertSerialNumberDate(to);
 
     data = JSON.parse(data);
+
+    console.log({ description, from: from.toString(), to: to.toString() });
 
     return { id, type, labels, from, to, description, data };
   });
