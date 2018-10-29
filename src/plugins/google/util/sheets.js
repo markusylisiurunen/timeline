@@ -100,8 +100,6 @@ const getEvents = async ({ credentials, spreadsheet, sheet } = {}) => {
 
     data = JSON.parse(data);
 
-    console.log({ description, from: from.toString(), to: to.toString() });
-
     return { id, type, labels, from, to, description, data };
   });
 };
